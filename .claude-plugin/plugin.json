@@ -1,0 +1,7 @@
+{
+  "name": "claude-skill-v1",
+  "description": "Claude Code plugin with a developer workflow skill for safe, focused implementation work",
+  "author": {
+    "name": "ngocbinh123"
+  }
+}
