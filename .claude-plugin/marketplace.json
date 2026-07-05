@@ -1,50 +1,50 @@
 {
-  "name": "ngocbinh-skills",
+  "name": "bi-skills",
   "owner": {
     "name": "Ngoc Binh",
     "email": "nnbinh0301@gmail.com",
     "url": "https://github.com/ngocbinh123"
   },
   "metadata": {
-    "description": "Frontend & mobile engineering skills for Claude Code: Git, React Native, Android, iOS, Pencil",
-    "version": "0.2.0"
+    "description": "Bi's frontend skills for Claude: web & mobile with React and React Native at the core, plus Git, Android, iOS, and Pencil design",
+    "version": "0.3.0"
   },
   "plugins": [
     {
-      "name": "git-toolkit",
-      "source": "./plugins/git-toolkit",
+      "name": "bi-git",
+      "source": "./plugins/bi-git",
       "description": "Git workflow skills: conventional commits, safe rebase and conflict resolution, pull request workflow",
       "version": "0.1.0",
       "license": "MIT",
       "category": "development"
     },
     {
-      "name": "react-native-toolkit",
-      "source": "./plugins/react-native-toolkit",
+      "name": "bi-react-native",
+      "source": "./plugins/bi-react-native",
       "description": "React Native development skills: build error triage, performance optimization",
       "version": "0.1.0",
       "license": "MIT",
       "category": "mobile"
     },
     {
-      "name": "android-toolkit",
-      "source": "./plugins/android-toolkit",
+      "name": "bi-android",
+      "source": "./plugins/bi-android",
       "description": "Android native development skills: Gradle build error triage",
       "version": "0.1.0",
       "license": "MIT",
       "category": "mobile"
     },
     {
-      "name": "ios-toolkit",
-      "source": "./plugins/ios-toolkit",
+      "name": "bi-ios",
+      "source": "./plugins/bi-ios",
       "description": "iOS native development skills: Xcode and dependency build error triage",
       "version": "0.1.0",
       "license": "MIT",
       "category": "mobile"
     },
     {
-      "name": "pencil-toolkit",
-      "source": "./plugins/pencil-toolkit",
+      "name": "bi-pencil",
+      "source": "./plugins/bi-pencil",
       "description": "Pencil (pencil.dev) design skills: agent-driven UI design via Pencil's MCP tools, with mobile-first screen design and design-to-code handoff",
       "version": "0.1.0",
       "license": "MIT",

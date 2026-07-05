@@ -9,7 +9,7 @@ Exactly two fields — extra fields hurt portability across agent harnesses:
 
 ```yaml
 ---
-name: rn-performance
+name: bi-rn-performance
 description: Diagnose and fix React Native performance problems - slow lists, dropped frames, re-render storms. Use when a React Native app is slow, laggy, janky, or has low FPS.
 ---
 ```
@@ -63,7 +63,7 @@ without scenarios is incomplete.
 
 ## Adding a new plugin — checklist
 
-- [ ] `plugins/<name>/.claude-plugin/plugin.json` (copy shape from git-toolkit)
+- [ ] `plugins/<name>/.claude-plugin/plugin.json` (copy shape from bi-git)
 - [ ] Per-plugin `README.md`, `LICENSE`, `CHANGELOG.md`
 - [ ] At least one skill following the skill checklist
 - [ ] Entry added to `.claude-plugin/marketplace.json`, then `node tools/sync-versions.js`

@@ -1,0 +1,13 @@
+{
+  "name": "bi-react-native",
+  "description": "React Native development skills: build error triage, performance optimization",
+  "version": "0.1.0",
+  "author": {
+    "name": "Ngoc Binh",
+    "email": "nnbinh0301@gmail.com"
+  },
+  "homepage": "https://github.com/ngocbinh123/claude-skill-v1",
+  "repository": "https://github.com/ngocbinh123/claude-skill-v1",
+  "license": "MIT",
+  "keywords": ["react-native", "mobile", "performance", "debugging", "metro"]
+}

@@ -2,9 +2,11 @@
 
 ## Mission
 
-Give coding agents the frontend/mobile engineering judgment of a senior
-developer — packaged as installable, versioned, test-proven skills for Git,
-React Native, Android native, and iOS native work.
+Give coding agents the frontend engineering judgment of a senior developer —
+across **web and mobile, with React and React Native as the primary focus** —
+packaged as installable, versioned, test-proven skills, built first for
+Claude. The `bi-` prefix (short for Binh, the author) brands every plugin
+and skill in the library.
 
 ## Who this serves
 
@@ -31,12 +33,19 @@ Every skill in this repo must satisfy all three:
 
 ## Scope
 
-**In scope (current):** `git-toolkit`, `react-native-toolkit`,
-`android-toolkit`, `ios-toolkit`, `pencil-toolkit` (agent-driven UI design
+**In scope (current):** `bi-git`, `bi-react-native`,
+`bi-android`, `bi-ios`, `bi-pencil` (agent-driven UI design
 in [Pencil](https://pencil.dev) via its MCP tools, mobile-first — designs
 live as `.pen` files in the repo and hand off to RN/SwiftUI/Compose code).
 
-**Planned:** further frontend toolkits as demand appears.
+**Planned:** `bi-react` — React web skills (component architecture,
+performance, debugging), completing the React + React Native core; further
+frontend toolkits as demand appears.
+
+**Naming convention:** marketplace `bi-skills`; every plugin and skill is
+prefixed `bi-`. Rationale: personal brand visibility in session logs and
+skill listings, zero collision risk with other installed marketplaces, and
+a consistent identity when skills are copied standalone into other tools.
 
 **Out of scope (non-goals):**
 
@@ -44,7 +53,7 @@ live as `.pen` files in the repo and hand off to RN/SwiftUI/Compose code).
   the differentiator.
 - MCP servers, hooks, agents, LSP configs — this repo ships knowledge
   (skills), not runtime integrations. Skills MAY teach the use of external
-  MCP servers the user installs themselves (pencil-toolkit does), but we
+  MCP servers the user installs themselves (bi-pencil does), but we
   bundle none.
 - An npm installer package of our own — distribution analysis (2026-07)
   showed marketplace + the generic `npx skills add` path covers all users
