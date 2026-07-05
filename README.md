@@ -39,6 +39,20 @@ any SKILL.md-compatible installer, e.g.:
 npx skills add ngocbinh123/claude-skill-v1
 ```
 
+## GitHub MCP server
+
+The repo ships a project-level [`.mcp.json`](.mcp.json) that registers
+GitHub's official remote MCP server (`https://api.githubcopilot.com/mcp/`).
+Open this repo in Claude Code, approve the project MCP config when
+prompted, then run `/mcp` and pick **github → Authenticate** to sign in
+with OAuth — no personal access token needs to be stored anywhere.
+
+To add the same server to your own machine (outside this repo):
+
+```
+claude mcp add --transport http github https://api.githubcopilot.com/mcp/
+```
+
 ## Plugins & skills
 
 | Plugin | Skill | What it does |
