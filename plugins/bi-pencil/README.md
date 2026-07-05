@@ -24,6 +24,10 @@ Verify with `/mcp` (a `pencil` server should show as connected).
 /plugin install bi-pencil@bi-skills
 ```
 
+Also works in **Claude Cowork** (add the marketplace, then install from the
+Plugins sidebar) — designing in Pencil needs no terminal, so this is the
+plugin in the library best suited to Cowork users.
+
 ## Data handling
 
 Plain-markdown skills: no external calls, no data collection, nothing
