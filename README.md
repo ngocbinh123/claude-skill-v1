@@ -56,6 +56,18 @@ npx skills add ngocbinh123/claude-skill-v1
 **Planned:** `bi-react` — React web skills (component architecture,
 performance, debugging) to complete the web side of the library.
 
+## Compatibility
+
+Skills follow the open Agent Skills standard and plugins follow the Claude
+plugin format, so the same repo serves multiple surfaces:
+
+| Surface | Works? | How to install | Notes |
+|---|---|---|---|
+| **Claude Code** | ✅ Primary target | `/plugin marketplace add ngocbinh123/claude-skill-v1` → `/plugin install bi-git@bi-skills` | Full experience — dev skills assume terminal access |
+| **Claude Cowork** | ✅ Same plugin system | Add the marketplace, then install from the **Plugins** sidebar (or `/plugin install bi-pencil@bi-skills`) | Best fit: `bi-pencil` (design needs no terminal). Dev toolkits install but have little to do without a shell. Installs do NOT sync with Claude Code — add the marketplace in each app |
+| **claude.ai** | ✅ Skills run identically | Via installed plugins | Hooks/subagents features don't apply (we ship none) |
+| **Cursor / Codex / Copilot / other Agent Skills tools** | ✅ Skill content only | `npx skills add ngocbinh123/claude-skill-v1` | Plugin packaging is ignored; SKILL.md folders are used directly |
+
 ## Data handling
 
 These plugins are plain-markdown skills. They call no external services,
@@ -98,6 +110,10 @@ Cài đặt trong Claude Code:
 
 Sau khi cài, nhớ bật auto-update: `/plugin` → tab **Marketplaces** →
 `bi-skills` → **Enable auto-update**.
+
+Thư viện chạy được trên Claude Code (chính), Claude Cowork (thêm
+marketplace rồi cài từ sidebar **Plugins** — phù hợp nhất với `bi-pencil`),
+và các tool khác đọc chuẩn Agent Skills qua `npx skills add`.
 
 Đóng góp skill mới: đọc `docs/authoring.md` — mọi skill đều viết theo TDD
 (viết scenario kiểm thử trong `evals/` trước, viết SKILL.md sau).
