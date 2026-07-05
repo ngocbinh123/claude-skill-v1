@@ -20,15 +20,30 @@
 7. **Skills stay portable.** No Claude-Code-only constructs inside SKILL.md
    content; anything harness-specific is a deliberate, documented exception.
 
-## Quality gates (in order)
+## Quality gates — the two-step PR gate
 
-| Gate | Tool | When |
-|---|---|---|
-| Frontmatter lint | `node tools/lint-frontmatter.js` | pre-commit, CI |
-| Version sync | `node tools/sync-versions.js --check` | pre-commit, CI |
-| Manifest validity | `claude plugin validate` per plugin | CI (same check as Anthropic's pipeline) |
-| Behavioral evals | manual/LLM-judged scenario runs | before merging skill changes |
-| Human review | PR review | always |
+Every PR passes two automated steps before human review:
+
+**Step 1 — style & rules** (`.github/workflows/validate.yml`, free, always on):
+
+| Check | Tool |
+|---|---|
+| Frontmatter lint | `node tools/lint-frontmatter.js` |
+| Governance rules (evals exist, plugin completeness, bi- prefix) | `node tools/check-governance.js` |
+| Version sync | `node tools/sync-versions.js --check` |
+| Manifest validity | `claude plugin validate` per plugin (same check as Anthropic's pipeline) |
+
+**Step 2 — behavioral evals, "JUnit for skills"**
+(`.github/workflows/skill-evals.yml`, runs on PRs touching `plugins/**` or
+`evals/**`; requires the `ANTHROPIC_API_KEY` repo secret):
+
+`tools/run-evals.js` runs each touched plugin's scenarios through a headless
+Claude with the skill injected, grades every expected behavior with an LLM
+judge, and fails the PR if any behavior fails. Results publish as JUnit XML
+artifacts. See `evals/README.md` for local usage and known limits.
+
+**Step 3 — human review**: does the eval evidence hold, is the skill
+opinionated, is the description trigger-complete.
 
 ## Contribution workflow
 

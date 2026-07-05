@@ -1,0 +1,3 @@
+# behavioral eval outputs (regenerated per run; CI uploads them as artifacts)
+evals/results/
+node_modules/

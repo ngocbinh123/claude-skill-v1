@@ -40,3 +40,28 @@ Grade manually against the checklist, or ask a second Claude session to act
 as judge: paste the transcript and the expected-behaviors list, and ask for a
 pass/fail per item with evidence quotes. Re-run scenarios whenever the
 corresponding SKILL.md changes.
+
+## Automated runner ("JUnit for skills")
+
+`tools/run-evals.js` automates the loop in advice mode (headless `claude -p`
+with all tools disabled; the with-skill arm injects SKILL.md as a triggered
+skill; an LLM judge grades each expected behavior; results land in
+`evals/results/` as JSON + JUnit XML):
+
+```bash
+node tools/run-evals.js --dry-run                    # list parsed cases (no API calls)
+node tools/run-evals.js --plugin bi-git              # gate one plugin
+node tools/run-evals.js --plugin bi-react-native --skill bi-rn-debugging \
+  --scenario S1 --ablation                           # RED+GREEN for one scenario
+```
+
+CI runs this on every PR touching `plugins/**` or `evals/**`
+(`.github/workflows/skill-evals.yml`, needs the `ANTHROPIC_API_KEY` secret).
+
+Limits to know: the runner tests behavior compliance, not trigger matching
+(the skill is force-injected) — trigger testing still needs a real session
+where you speak naturally and watch whether the skill loads. Scenarios that
+depend on live tools (bi-pencil's MCP calls, real git state) are graded on
+the committed approach, not execution. Claude Code also ships a native
+`claude plugin eval` (early access) with the same with/without-ablation
+idea — we migrate to it when it stabilizes.

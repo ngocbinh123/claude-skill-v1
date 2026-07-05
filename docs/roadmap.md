@@ -12,8 +12,11 @@ Status legend: ✅ done · 🔄 in progress · ⬜ planned
 ## Phase 1 — Prove the loop (bi-git) 🔄
 
 - ✅ 3 skills drafted: bi-commit-convention, bi-rebase-conflict, bi-pr-workflow
-- ⬜ Run RED baselines for all bi-git scenarios (fresh sessions,
-  no plugin) and record in `evals/*/baseline.md`
+- ✅ Automated eval harness: `tools/run-evals.js` (headless arms + LLM judge
+  + JUnit output) with CI gate `skill-evals.yml`; first RED/GREEN evidence
+  recorded (bi-rn-debugging S1: baseline 0/3 → with-skill 3/3)
+- ⬜ Run RED baselines for all bi-git scenarios (`node tools/run-evals.js
+  --plugin bi-git --ablation`) and record in `evals/*/baseline.md`
 - ⬜ Iterate skills to GREEN; record evidence
 - ⬜ Local install test (`/plugin marketplace add <local path>`)
 - ⬜ Merge to `main` → first public release `bi-git-v0.1.0`
