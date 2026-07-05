@@ -32,17 +32,20 @@ Every skill in this repo must satisfy all three:
 ## Scope
 
 **In scope (current):** `git-toolkit`, `react-native-toolkit`,
-`android-toolkit`, `ios-toolkit`.
+`android-toolkit`, `ios-toolkit`, `pencil-toolkit` (agent-driven UI design
+in [Pencil](https://pencil.dev) via its MCP tools, mobile-first — designs
+live as `.pen` files in the repo and hand off to RN/SwiftUI/Compose code).
 
-**Planned:** `pencil-toolkit` (scope being defined), further frontend
-toolkits as demand appears.
+**Planned:** further frontend toolkits as demand appears.
 
 **Out of scope (non-goals):**
 
 - Backend/infra skills — other marketplaces cover them; staying focused is
   the differentiator.
 - MCP servers, hooks, agents, LSP configs — this repo ships knowledge
-  (skills), not runtime integrations, until a skill genuinely requires one.
+  (skills), not runtime integrations. Skills MAY teach the use of external
+  MCP servers the user installs themselves (pencil-toolkit does), but we
+  bundle none.
 - An npm installer package of our own — distribution analysis (2026-07)
   showed marketplace + the generic `npx skills add` path covers all users
   without the security and staleness liabilities of a custom installer.
