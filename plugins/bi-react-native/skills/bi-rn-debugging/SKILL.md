@@ -50,6 +50,10 @@ cache-nuking without a diagnosis destroys the evidence.
 
 1. Re-run with `cd android && ./gradlew app:assembleDebug --stacktrace` and
    read the FIRST `Caused by:` in the chain — Gradle buries root causes.
+   The same task name can hide opposite causes: `:app:mergeDex*` fails on
+   either `OutOfMemoryError` (fix heap in gradle.properties) or duplicate
+   classes (fix dependencies) — let the stacktrace, not the task name,
+   decide which.
 2. After dependency changes, check for duplicate/conflicting native versions:
    `./gradlew app:dependencies | grep -A2 <lib>`.
 3. See [references/common-build-errors.md](references/common-build-errors.md)

@@ -59,8 +59,11 @@ destroy teammates' commits pushed after your last fetch.
 
 ## Anti-patterns
 
-- Do NOT resolve by accepting one whole side (`--ours`/`--theirs`) unless you
-  have verified the other side's change is genuinely obsolete.
+- Do NOT resolve by accepting one whole side (`--ours`/`--theirs`) until you
+  have LISTED the exact changes that would be discarded (show the other
+  side's hunks per file, e.g. `git diff <base>...<their-tip> -- <file>`) and
+  confirmed each is genuinely obsolete — never accept a side while the
+  discarded content is still unseen.
 - Do NOT `git push --force` to "make the error go away" — diagnose first.
 - Do NOT continue a rebase while tests are failing "to fix later"; fixing at
   the conflicting commit is cheaper than untangling afterwards.

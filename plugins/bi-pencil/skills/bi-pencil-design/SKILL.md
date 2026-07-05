@@ -52,8 +52,10 @@ Rules, in priority order:
    component + instances, never sibling copies.
 3. **Structure.** Everything lives inside named frames with auto-layout —
    loose canvas elements and default names (`Frame 4`) produce garbage
-   generated code. Names are semantic PascalCase (`PrimaryActionButton`)
-   because they flow into code.
+   generated code. Name EVERY node you create in semantic PascalCase —
+   frames, components, and instances alike (`TestimonialsSection` holding
+   `TestimonialCard` instances, never "the card") — because names flow
+   into code.
 4. **Placement.** Call `FindEmptySpace` before inserting new top-level
    frames; never overlap existing work.
 5. **Batch.** Group related ops in one `batch_design` call instead of many

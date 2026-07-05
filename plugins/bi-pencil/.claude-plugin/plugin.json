@@ -1,7 +1,7 @@
 {
   "name": "bi-pencil",
   "description": "Pencil (pencil.dev) design skills: agent-driven UI design via Pencil's MCP tools, with mobile-first screen design and design-to-code handoff",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Ngoc Binh",
     "email": "nnbinh0301@gmail.com"
@@ -9,5 +9,12 @@
   "homepage": "https://github.com/ngocbinh123/claude-skill-v1",
   "repository": "https://github.com/ngocbinh123/claude-skill-v1",
   "license": "MIT",
-  "keywords": ["pencil", "design", "ui", "mcp", "design-to-code", "mobile"]
+  "keywords": [
+    "pencil",
+    "design",
+    "ui",
+    "mcp",
+    "design-to-code",
+    "mobile"
+  ]
 }

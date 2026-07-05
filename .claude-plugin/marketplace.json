@@ -14,7 +14,7 @@
       "name": "bi-git",
       "source": "./plugins/bi-git",
       "description": "Git workflow skills: conventional commits, safe rebase and conflict resolution, pull request workflow",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "license": "MIT",
       "category": "development"
     },
@@ -22,7 +22,7 @@
       "name": "bi-react-native",
       "source": "./plugins/bi-react-native",
       "description": "React Native development skills: build error triage, performance optimization",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "license": "MIT",
       "category": "mobile"
     },
@@ -46,7 +46,7 @@
       "name": "bi-pencil",
       "source": "./plugins/bi-pencil",
       "description": "Pencil (pencil.dev) design skills: agent-driven UI design via Pencil's MCP tools, with mobile-first screen design and design-to-code handoff",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "license": "MIT",
       "category": "design"
     }
