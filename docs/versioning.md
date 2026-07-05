@@ -21,10 +21,13 @@ added/removed from the catalog, patch for metadata-only edits.
 
 ## Branch strategy
 
-- **`main` = stable release channel.** Users' installs and (later) the
-  community marketplace's daily SHA-bump sweep track `main`'s HEAD. Nothing
-  lands on `main` unless it is release-ready and CI-green.
-- All work happens on feature branches; merge to `main` is the release act.
+- **The default branch (`master` in this repo) = stable release channel.**
+  Users' installs and (later) the community marketplace's daily SHA-bump
+  sweep track its HEAD. Nothing lands on it unless it is release-ready and
+  CI-green. (Docs elsewhere say `main` generically — read it as "the
+  default branch".)
+- All work happens on feature branches; merging to the default branch is
+  the release act.
 
 ## Release procedure
 
