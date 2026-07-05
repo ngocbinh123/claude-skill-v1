@@ -15,6 +15,8 @@ Status legend: ✅ done · 🔄 in progress · ⬜ planned
 - ✅ Automated eval harness: `tools/run-evals.js` (headless arms + LLM judge
   + JUnit output) with CI gate `skill-evals.yml`; first RED/GREEN evidence
   recorded (bi-rn-debugging S1: baseline 0/3 → with-skill 3/3)
+- ✅ First full with-skill run (2026-07-05): 24/28 green, 4 gaps fixed in
+  the 0.1.1 patches, re-run confirms 28/28 green
 - ⬜ Run RED baselines for all bi-git scenarios (`node tools/run-evals.js
   --plugin bi-git --ablation`) and record in `evals/*/baseline.md`
 - ⬜ Iterate skills to GREEN; record evidence
