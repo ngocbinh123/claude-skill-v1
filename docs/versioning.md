@@ -35,13 +35,13 @@ added/removed from the catalog, patch for metadata-only edits.
 5. Verify: `node tools/lint-frontmatter.js && node tools/sync-versions.js --check`
    and `claude plugin validate` on touched plugins.
 6. Merge to `main`. Tag releases `<plugin>-v<version>` (e.g.
-   `git-toolkit-v0.2.0`) so plugin histories are navigable in one repo.
+   `bi-git-v0.2.0`) so plugin histories are navigable in one repo.
 
 ## How updates reach users
 
 | Channel | Mechanism | Latency |
 |---|---|---|
-| Self-hosted marketplace | Client refresh: startup auto-update (user must enable it once for third-party marketplaces — README instructs this) or `/plugin marketplace update ngocbinh-skills` | Immediate on refresh |
+| Self-hosted marketplace | Client refresh: startup auto-update (user must enable it once for third-party marketplaces — README instructs this) or `/plugin marketplace update bi-skills` | Immediate on refresh |
 | `anthropics/claude-plugins-community` (after acceptance) | Their daily sweep re-validates our new `main` HEAD and auto-bumps the SHA pin — no re-submission, no manual action | ~1–3 days |
 | `npx skills add` users | Files are copied at install time; users must re-run the installer's update command | Manual |
 

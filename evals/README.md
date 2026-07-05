@@ -16,7 +16,7 @@ behaves wrongly, and an agent WITH the skill must behave correctly.
 
    ```
    /plugin marketplace add /path/to/claude-skill-v1
-   /plugin install <plugin>@ngocbinh-skills
+   /plugin install <plugin>@bi-skills
    ```
 
    A scenario passes when the observable behavior matches every item in its

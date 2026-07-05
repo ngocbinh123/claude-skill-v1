@@ -1,8 +1,15 @@
-# ngocbinh-skills
+# bi-skills
 
-Frontend & mobile engineering skills for Claude Code (and any agent that
-reads the [Agent Skills](https://agentskills.io) standard): **Git, React
-Native, Android native, iOS native** — with more toolkits on the way.
+**Bi**'s frontend skills for Claude — *bi* is short for Binh, the author.
+
+Frontend engineering skills for **web and mobile**, with **React and React
+Native at the core**, plus the workflows around them: Git, Android native,
+iOS native, and UI design in Pencil. Built primarily for Claude Code; the
+content follows the open [Agent Skills](https://agentskills.io) standard so
+other agents can use it too.
+
+Every plugin and skill carries the `bi-` prefix, so you always know which
+guidance is loaded (`bi-rn-debugging`, `bi-commit-convention`, ...).
 
 Every skill is developed test-first against pressure scenarios (see
 [`evals/`](evals/README.md)) so it demonstrably changes agent behavior.
@@ -11,17 +18,17 @@ Every skill is developed test-first against pressure scenarios (see
 
 ```
 /plugin marketplace add ngocbinh123/claude-skill-v1
-/plugin install git-toolkit@ngocbinh-skills
-/plugin install react-native-toolkit@ngocbinh-skills
-/plugin install android-toolkit@ngocbinh-skills
-/plugin install ios-toolkit@ngocbinh-skills
-/plugin install pencil-toolkit@ngocbinh-skills
+/plugin install bi-git@bi-skills
+/plugin install bi-react-native@bi-skills
+/plugin install bi-android@bi-skills
+/plugin install bi-ios@bi-skills
+/plugin install bi-pencil@bi-skills
 ```
 
 **Enable auto-updates** (off by default for third-party marketplaces):
-open `/plugin` → **Marketplaces** tab → `ngocbinh-skills` → **Enable
+open `/plugin` → **Marketplaces** tab → `bi-skills` → **Enable
 auto-update**. Or update manually anytime with `/plugin marketplace update
-ngocbinh-skills`.
+bi-skills`.
 
 ## Install (Cursor, Codex, Copilot, other agents)
 
@@ -36,15 +43,18 @@ npx skills add ngocbinh123/claude-skill-v1
 
 | Plugin | Skill | What it does |
 |---|---|---|
-| `git-toolkit` | `commit-convention` | Conventional Commits: splitting changes, writing messages, breaking changes |
-| | `rebase-conflict` | Safe rebase, intent-based conflict resolution, reflog recovery |
-| | `pr-workflow` | Reviewable PRs: sizing, description structure, responding to review |
-| `react-native-toolkit` | `rn-debugging` | Layered triage of RN build/runtime failures (Metro, iOS, Android) with an error-signature matrix |
-| | `rn-performance` | Measure-first performance fixes: lists, re-renders, animations, startup, memory |
-| `android-toolkit` | `android-build-errors` | Gradle failure triage: toolchain, dependencies, resources, memory |
-| `ios-toolkit` | `ios-build-errors` | Xcode failure triage: signing, CocoaPods/SPM, compile, link, environment |
-| `pencil-toolkit` | `pencil-design` | Agent-driven UI design in [Pencil](https://pencil.dev) via its MCP tools: tokens-first, components-first, screenshot-verified |
-| | `pencil-mobile-screens` | Mobile screens in Pencil: device frames, safe areas, touch targets, handoff to RN/SwiftUI/Compose |
+| `bi-git` | `bi-commit-convention` | Conventional Commits: splitting changes, writing messages, breaking changes |
+| | `bi-rebase-conflict` | Safe rebase, intent-based conflict resolution, reflog recovery |
+| | `bi-pr-workflow` | Reviewable PRs: sizing, description structure, responding to review |
+| `bi-react-native` | `bi-rn-debugging` | Layered triage of RN build/runtime failures (Metro, iOS, Android) with an error-signature matrix |
+| | `bi-rn-performance` | Measure-first performance fixes: lists, re-renders, animations, startup, memory |
+| `bi-android` | `bi-android-build-errors` | Gradle failure triage: toolchain, dependencies, resources, memory |
+| `bi-ios` | `bi-ios-build-errors` | Xcode failure triage: signing, CocoaPods/SPM, compile, link, environment |
+| `bi-pencil` | `bi-pencil-design` | Agent-driven UI design in [Pencil](https://pencil.dev) via its MCP tools: tokens-first, components-first, screenshot-verified |
+| | `bi-pencil-mobile-screens` | Mobile screens in Pencil: device frames, safe areas, touch targets, handoff to RN/SwiftUI/Compose |
+
+**Planned:** `bi-react` — React web skills (component architecture,
+performance, debugging) to complete the web side of the library.
 
 ## Data handling
 
@@ -75,18 +85,19 @@ node tools/lint-frontmatter.js && node tools/sync-versions.js --check
 
 ## Tiếng Việt
 
-Thư viện skill cho Claude Code hỗ trợ lập trình frontend/mobile: Git, React
-Native, Android native, iOS native.
+Thư viện skill của **Bi** (Bình) cho Claude Code — lập trình frontend web &
+mobile, trọng tâm React và React Native, kèm Git, Android/iOS native và
+design với Pencil. Mọi skill đều có tiền tố `bi-`.
 
 Cài đặt trong Claude Code:
 
 ```
 /plugin marketplace add ngocbinh123/claude-skill-v1
-/plugin install git-toolkit@ngocbinh-skills
+/plugin install bi-git@bi-skills
 ```
 
 Sau khi cài, nhớ bật auto-update: `/plugin` → tab **Marketplaces** →
-`ngocbinh-skills` → **Enable auto-update**.
+`bi-skills` → **Enable auto-update**.
 
 Đóng góp skill mới: đọc `docs/authoring.md` — mọi skill đều viết theo TDD
 (viết scenario kiểm thử trong `evals/` trước, viết SKILL.md sau).

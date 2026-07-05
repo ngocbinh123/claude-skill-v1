@@ -68,7 +68,7 @@ can be extracted to its own repo without modification (see Evolution below).
 
 ### Distribution — `.claude-plugin/marketplace.json`
 
-One marketplace (`ngocbinh-skills`) fronting all plugins with relative
+One marketplace (`bi-skills`) fronting all plugins with relative
 `./plugins/<name>` sources. The entry schema also supports external
 SHA-pinned sources (`git-subdir` + `sha`) — that is the designated mechanism
 for third-party contributions, keeping external code out of this repo.
