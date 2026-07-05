@@ -1,0 +1,41 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Lint skill frontmatter
+        run: node tools/lint-frontmatter.js
+
+      - name: Check version sync (plugin.json vs marketplace.json)
+        run: node tools/sync-versions.js --check
+
+      - name: Validate JSON manifests
+        run: |
+          node -e '
+            const fs = require("fs");
+            const files = ["./.claude-plugin/marketplace.json",
+              ...fs.readdirSync("plugins").map(d => `plugins/${d}/.claude-plugin/plugin.json`)
+                .filter(f => fs.existsSync(f))];
+            for (const f of files) { JSON.parse(fs.readFileSync(f, "utf8")); console.log("valid:", f); }
+          '
+
+      # Same check Anthropic runs on community-marketplace submissions.
+      - name: claude plugin validate
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          for dir in plugins/*/; do
+            echo "--- validating $dir"
+            claude plugin validate "$dir"
+          done

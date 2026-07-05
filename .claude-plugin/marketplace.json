@@ -1,0 +1,46 @@
+{
+  "name": "ngocbinh-skills",
+  "owner": {
+    "name": "Ngoc Binh",
+    "email": "nnbinh0301@gmail.com",
+    "url": "https://github.com/ngocbinh123"
+  },
+  "metadata": {
+    "description": "Frontend & mobile engineering skills for Claude Code: Git, React Native, Android, iOS, Pencil",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "git-toolkit",
+      "source": "./plugins/git-toolkit",
+      "description": "Git workflow skills: conventional commits, safe rebase and conflict resolution, pull request workflow",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "development"
+    },
+    {
+      "name": "react-native-toolkit",
+      "source": "./plugins/react-native-toolkit",
+      "description": "React Native development skills: build error triage, performance optimization",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "mobile"
+    },
+    {
+      "name": "android-toolkit",
+      "source": "./plugins/android-toolkit",
+      "description": "Android native development skills: Gradle build error triage",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "mobile"
+    },
+    {
+      "name": "ios-toolkit",
+      "source": "./plugins/ios-toolkit",
+      "description": "iOS native development skills: Xcode and dependency build error triage",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "mobile"
+    }
+  ]
+}
