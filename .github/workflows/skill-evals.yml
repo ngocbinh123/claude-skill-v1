@@ -1,0 +1,96 @@
+# Step 2 of the PR gate: behavioral evals ("JUnit for skills").
+# Runs every scenario of the plugins touched by the PR through a headless
+# Claude session with the skill injected, grades the response against the
+# scenario's expected-behavior checklist with an LLM judge, and publishes
+# JUnit results. Requires the ANTHROPIC_API_KEY repository secret.
+name: skill-evals
+
+on:
+  pull_request:
+    paths:
+      - "plugins/**"
+      - "evals/**"
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: "Plugin to eval (empty = all)"
+        required: false
+      ablation:
+        description: "Also run no-skill baseline arm"
+        type: boolean
+        default: false
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check API key
+        id: key
+        run: |
+          if [ -z "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not set — behavioral evals cannot run. Add it in repo Settings → Secrets."
+            exit 1
+          fi
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Determine plugins to eval
+        id: targets
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "plugins=${{ inputs.plugin }}" >> "$GITHUB_OUTPUT"
+          else
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD -- plugins/ evals/ \
+              | grep -oE '^(plugins|evals)/[^/]+' | cut -d/ -f2 | sort -u | grep -v '^results$' | tr '\n' ' ')
+            echo "plugins=$CHANGED" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run behavioral evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -e
+          PLUGINS="${{ steps.targets.outputs.plugins }}"
+          ABLATION=""
+          [ "${{ inputs.ablation }}" = "true" ] && ABLATION="--ablation"
+          if [ -z "$PLUGINS" ]; then
+            node tools/run-evals.js $ABLATION
+          else
+            STATUS=0
+            for p in $PLUGINS; do
+              [ -d "evals/$p" ] || continue
+              node tools/run-evals.js --plugin "$p" $ABLATION || STATUS=1
+            done
+            exit $STATUS
+          fi
+
+      - name: Upload JUnit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-eval-results
+          path: evals/results/
+
+      - name: Publish summary
+        if: always()
+        run: |
+          if [ -f evals/results/junit.xml ]; then
+            {
+              echo "## Skill eval results"
+              echo '```'
+              grep -oE '<testsuite name="[^"]+" tests="[0-9]+" failures="[0-9]+"' evals/results/junit.xml \
+                | sed 's/<testsuite name=/suite /; s/" tests="/ — tests: /; s/" failures="/, failures: /; s/"$//' \
+                | sed 's/"//g'
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

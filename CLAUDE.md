@@ -35,5 +35,9 @@ goals, architecture + decision log, versioning, governance, roadmap.
 ## Verify before committing
 
 ```bash
-node tools/lint-frontmatter.js && node tools/sync-versions.js --check
+node tools/lint-frontmatter.js && node tools/check-governance.js && \
+  node tools/sync-versions.js --check
 ```
+
+Behavioral gate for skill changes (needs API access):
+`node tools/run-evals.js --plugin <name>` — see `evals/README.md`.

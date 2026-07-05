@@ -18,6 +18,9 @@ jobs:
       - name: Lint skill frontmatter
         run: node tools/lint-frontmatter.js
 
+      - name: Governance rules (evals exist, plugin completeness, bi- prefix)
+        run: node tools/check-governance.js
+
       - name: Check version sync (plugin.json vs marketplace.json)
         run: node tools/sync-versions.js --check
 
