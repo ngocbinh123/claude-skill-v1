@@ -15,6 +15,7 @@ Every skill is developed test-first against pressure scenarios (see
 /plugin install react-native-toolkit@ngocbinh-skills
 /plugin install android-toolkit@ngocbinh-skills
 /plugin install ios-toolkit@ngocbinh-skills
+/plugin install pencil-toolkit@ngocbinh-skills
 ```
 
 **Enable auto-updates** (off by default for third-party marketplaces):
@@ -42,6 +43,8 @@ npx skills add ngocbinh123/claude-skill-v1
 | | `rn-performance` | Measure-first performance fixes: lists, re-renders, animations, startup, memory |
 | `android-toolkit` | `android-build-errors` | Gradle failure triage: toolchain, dependencies, resources, memory |
 | `ios-toolkit` | `ios-build-errors` | Xcode failure triage: signing, CocoaPods/SPM, compile, link, environment |
+| `pencil-toolkit` | `pencil-design` | Agent-driven UI design in [Pencil](https://pencil.dev) via its MCP tools: tokens-first, components-first, screenshot-verified |
+| | `pencil-mobile-screens` | Mobile screens in Pencil: device frames, safe areas, touch targets, handoff to RN/SwiftUI/Compose |
 
 ## Data handling
 

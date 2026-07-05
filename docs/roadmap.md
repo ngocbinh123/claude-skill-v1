@@ -26,8 +26,11 @@ Status legend: ✅ done · 🔄 in progress · ⬜ planned
 - ⬜ New skills: `rn-release` (signing, store submission, OTA),
   `rn-native-modules` (Turbo Modules / New Architecture),
   `android-compose-performance`, `ios-signing`
-- ⬜ Define `pencil-toolkit` scope (blocked on owner decision) and apply the
-  standard loop
+- ✅ `pencil-toolkit` scope defined: Pencil (pencil.dev) agent-driven design
+  via its MCP tools, mobile-first. Two skills drafted (`pencil-design`,
+  `pencil-mobile-screens`) with scenarios
+- ⬜ Evals RED/GREEN for pencil-toolkit (requires an environment with the
+  Pencil app + MCP connected)
 
 ## Phase 3 — Public launch ⬜
 
