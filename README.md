@@ -48,6 +48,13 @@ npx skills add ngocbinh123/claude-skill-v1
 These plugins are plain-markdown skills. They call no external services,
 collect no data, and execute nothing at install time.
 
+## Project documentation
+
+Start at the [docs index](docs/README.md): [goals](docs/goals.md) ·
+[architecture & decision log](docs/architecture.md) ·
+[versioning & releases](docs/versioning.md) ·
+[governance & rules](docs/governance.md) · [roadmap](docs/roadmap.md).
+
 ## Contributing
 
 Read [`docs/authoring.md`](docs/authoring.md) (style guide + checklists) and

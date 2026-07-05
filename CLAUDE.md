@@ -3,6 +3,9 @@
 Monorepo of Claude Code plugins (skills for Git, React Native, Android, iOS).
 Marketplace manifest: `.claude-plugin/marketplace.json`.
 
+Foundational docs (read before structural changes): `docs/README.md` —
+goals, architecture + decision log, versioning, governance, roadmap.
+
 ## Architecture (dependency rule: outer depends on inner, never reverse)
 
 1. **Content** — `plugins/*/skills/*/` SKILL.md + references/ + scripts/.
@@ -26,6 +29,8 @@ Marketplace manifest: `.claude-plugin/marketplace.json`.
 - `main` is the stable release channel (community marketplace tracks its
   HEAD). Develop on branches; merge only release-ready work.
 - Style guide: `docs/authoring.md`. Template: `docs/skill-template/SKILL.md`.
+- Full rule set + quality gates: `docs/governance.md`. Version/release
+  policy: `docs/versioning.md`.
 
 ## Verify before committing
 
