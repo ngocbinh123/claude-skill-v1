@@ -1,0 +1,375 @@
+# Reacts to ticket status changes on the project board:
+#   backlog -> ready    : AI clarifies the requirement (clear? -> RECAP comment,
+#                         unclear? -> open questions + suggested next action)
+#   ready   -> develop  : AI suggests implementation approaches + test cases
+#
+# GitHub Actions cannot be triggered directly by Projects v2 status changes,
+# so this workflow polls the board on a schedule, mirrors each issue's Status
+# into a `status:<value>` label, and diffs label vs board to detect transitions.
+# Setup + design notes: docs/ticket-automation.md
+name: ticket-status-automation
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to process manually (skips board scan)"
+        required: false
+      action:
+        description: "Which handler to run for the manual issue"
+        required: false
+        type: choice
+        options: [none, clarify, plan]
+        default: none
+
+concurrency:
+  group: ticket-status-automation
+  cancel-in-progress: false
+
+env:
+  PROJECT_OWNER: ngocbinh123
+  PROJECT_NUMBER: "2"
+  STATUS_FIELD: Status
+  AI_MODEL: openai/gpt-4o
+  # One rule per line: <from>-><to>=<handler>   (status names, case-insensitive)
+  TRANSITION_RULES: |
+    backlog->ready=clarify
+    ready->develop=plan
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    outputs:
+      clarify: ${{ steps.scan.outputs.clarify }}
+      plan: ${{ steps.scan.outputs.plan }}
+    steps:
+      - name: Require PROJECT_TOKEN secret
+        if: github.event_name == 'schedule' || github.event.inputs.issue_number == ''
+        run: |
+          if [ -z "${{ secrets.PROJECT_TOKEN }}" ]; then
+            echo "::error::PROJECT_TOKEN secret is missing (PAT with project read + repo scope). See docs/ticket-automation.md"
+            exit 1
+          fi
+
+      - name: Scan board for status transitions
+        id: scan
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN || github.token }}
+          script: |
+            // Manual run for a single issue: skip the board scan entirely.
+            const inputs = context.payload.inputs || {};
+            if (context.eventName === 'workflow_dispatch' && inputs.issue_number) {
+              const entry = [{ number: parseInt(inputs.issue_number, 10) }];
+              core.setOutput('clarify', JSON.stringify(inputs.action === 'clarify' ? entry : []));
+              core.setOutput('plan', JSON.stringify(inputs.action === 'plan' ? entry : []));
+              return;
+            }
+
+            const rules = {};
+            for (const line of (process.env.TRANSITION_RULES || '').split('\n')) {
+              const m = line.trim().match(/^(.+?)->(.+?)=(clarify|plan)$/i);
+              if (m) rules[`${m[1].trim().toLowerCase()}->${m[2].trim().toLowerCase()}`] = m[3].toLowerCase();
+            }
+
+            const query = `
+              query($login: String!, $number: Int!, $cursor: String) {
+                user(login: $login) {
+                  projectV2(number: $number) {
+                    items(first: 100, after: $cursor) {
+                      pageInfo { hasNextPage endCursor }
+                      nodes {
+                        fieldValueByName(name: "${process.env.STATUS_FIELD}") {
+                          ... on ProjectV2ItemFieldSingleSelectValue { name }
+                        }
+                        content {
+                          ... on Issue {
+                            number
+                            state
+                            repository { nameWithOwner }
+                            labels(first: 100) { nodes { name } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }`;
+
+            const items = [];
+            let cursor = null;
+            do {
+              const res = await github.graphql(query, {
+                login: process.env.PROJECT_OWNER,
+                number: parseInt(process.env.PROJECT_NUMBER, 10),
+                cursor,
+              });
+              const conn = res.user.projectV2.items;
+              items.push(...conn.nodes);
+              cursor = conn.pageInfo.hasNextPage ? conn.pageInfo.endCursor : null;
+            } while (cursor);
+
+            const { owner, repo } = context.repo;
+            const repoFull = `${owner}/${repo}`.toLowerCase();
+
+            async function setStatusLabel(issue_number, oldLabel, status) {
+              if (oldLabel) {
+                await github.rest.issues
+                  .removeLabel({ owner, repo, issue_number, name: oldLabel })
+                  .catch(() => {});
+              }
+              const name = `status:${status}`;
+              try {
+                await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [name] });
+              } catch (e) {
+                await github.rest.issues
+                  .createLabel({ owner, repo, name, color: 'ededed' })
+                  .catch(() => {});
+                await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [name] });
+              }
+            }
+
+            const out = { clarify: [], plan: [] };
+            for (const item of items) {
+              const issue = item.content;
+              if (!issue || !issue.number) continue; // draft item or PR
+              if (issue.repository.nameWithOwner.toLowerCase() !== repoFull) continue;
+              const status = item.fieldValueByName && item.fieldValueByName.name;
+              if (!status) continue; // no Status set
+              const cur = status.trim().toLowerCase();
+
+              const mirror = issue.labels.nodes
+                .map((l) => l.name)
+                .find((n) => n.toLowerCase().startsWith('status:'));
+              const prev = mirror ? mirror.slice('status:'.length).toLowerCase() : null;
+              if (prev === cur) continue;
+
+              // Update the mirror label first (at-most-once: a failed AI job
+              // will not re-fire on the next poll).
+              await setStatusLabel(issue.number, mirror, cur);
+
+              if (prev === null) {
+                core.info(`#${issue.number}: baseline status recorded as "${cur}" (no automation on first sighting)`);
+                continue;
+              }
+
+              const kind = rules[`${prev}->${cur}`];
+              core.info(`#${issue.number}: ${prev} -> ${cur}${kind ? ` => ${kind}` : ' (no rule)'}`);
+              if (kind) out[kind].push({ number: issue.number });
+            }
+
+            core.setOutput('clarify', JSON.stringify(out.clarify));
+            core.setOutput('plan', JSON.stringify(out.plan));
+
+  clarify:
+    needs: detect
+    if: needs.detect.outputs.clarify != '' && needs.detect.outputs.clarify != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      models: read
+    strategy:
+      max-parallel: 2
+      matrix:
+        include: ${{ fromJSON(needs.detect.outputs.clarify) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect issue content
+        uses: actions/github-script@v7
+        env:
+          ISSUE_NUMBER: ${{ matrix.number }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = parseInt(process.env.ISSUE_NUMBER, 10);
+            const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            const parts = [
+              `# Issue #${issue.number}: ${issue.title}`,
+              '',
+              issue.body || '(no description)',
+            ];
+            for (const c of comments) {
+              parts.push('', `---`, `Comment by @${c.user.login} (${c.created_at}):`, '', c.body || '');
+            }
+            require('fs').writeFileSync('/tmp/issue.md', parts.join('\n'));
+
+      - name: Clarify requirement with AI
+        id: ai
+        uses: actions/ai-inference@v1
+        with:
+          model: ${{ env.AI_MODEL }}
+          system-prompt-file: .github/prompts/ticket-clarify.md
+          prompt-file: /tmp/issue.md
+          max-tokens: 2000
+
+      - name: Post verdict comment
+        uses: actions/github-script@v7
+        env:
+          ISSUE_NUMBER: ${{ matrix.number }}
+          AI_RESPONSE: ${{ steps.ai.outputs.response }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = parseInt(process.env.ISSUE_NUMBER, 10);
+            const raw = process.env.AI_RESPONSE || '';
+
+            let data = null;
+            try {
+              const m = raw.match(/\{[\s\S]*\}/);
+              data = JSON.parse(m ? m[0] : raw);
+            } catch (e) {
+              core.warning(`AI response was not valid JSON: ${e.message}`);
+            }
+
+            const list = (arr, checkbox) =>
+              (arr || []).map((x) => (checkbox ? `- [ ] ${x}` : `- ${x}`)).join('\n') || '_(none)_';
+
+            let body;
+            let label;
+            if (data && data.clear === true) {
+              label = 'requirement:clear';
+              const r = data.recap || {};
+              body = [
+                '<!-- ticket-automation:clarify -->',
+                '## ✅ Requirement RECAP',
+                '',
+                '_Auto-generated on `backlog → ready`. Verdict: **CLEAR** — ready for development planning._',
+                '',
+                data.assessment || '',
+                '',
+                '### Summary',
+                r.summary || '_(none)_',
+                '',
+                '### In scope',
+                list(r.scope),
+                '',
+                '### Out of scope',
+                list(r.out_of_scope),
+                '',
+                '### Acceptance criteria',
+                list(r.acceptance_criteria, true),
+                '',
+                '### Risks / assumptions',
+                list(r.risks),
+                '',
+                '### Suggested next action',
+                data.next_action || '_(none)_',
+              ].join('\n');
+            } else if (data && data.clear === false) {
+              label = 'requirement:needs-clarification';
+              body = [
+                '<!-- ticket-automation:clarify -->',
+                '## ❓ Requirement needs clarification',
+                '',
+                '_Auto-generated on `backlog → ready`. Verdict: **NOT CLEAR YET**._',
+                '',
+                data.assessment || '',
+                '',
+                '### Open questions',
+                (data.questions || []).map((q, i) => `${i + 1}. ${q}`).join('\n') || '_(none)_',
+                '',
+                '### Suggested next action',
+                data.next_action || 'Answer the questions above, then move the ticket back through `ready` to re-run clarification.',
+              ].join('\n');
+            } else {
+              body = [
+                '<!-- ticket-automation:clarify -->',
+                '## ⚠️ Requirement clarification (unstructured output)',
+                '',
+                '_The AI response could not be parsed as JSON; raw output below._',
+                '',
+                raw,
+              ].join('\n');
+            }
+
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
+
+            if (label) {
+              const other =
+                label === 'requirement:clear' ? 'requirement:needs-clarification' : 'requirement:clear';
+              await github.rest.issues
+                .removeLabel({ owner, repo, issue_number, name: other })
+                .catch(() => {});
+              try {
+                await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [label] });
+              } catch (e) {
+                await github.rest.issues
+                  .createLabel({ owner, repo, name: label, color: label === 'requirement:clear' ? '0e8a16' : 'd93f0b' })
+                  .catch(() => {});
+                await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [label] });
+              }
+            }
+
+  plan:
+    needs: detect
+    if: needs.detect.outputs.plan != '' && needs.detect.outputs.plan != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      models: read
+    strategy:
+      max-parallel: 2
+      matrix:
+        include: ${{ fromJSON(needs.detect.outputs.plan) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect issue content
+        uses: actions/github-script@v7
+        env:
+          ISSUE_NUMBER: ${{ matrix.number }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = parseInt(process.env.ISSUE_NUMBER, 10);
+            const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            const parts = [
+              `# Issue #${issue.number}: ${issue.title}`,
+              '',
+              issue.body || '(no description)',
+            ];
+            for (const c of comments) {
+              parts.push('', `---`, `Comment by @${c.user.login} (${c.created_at}):`, '', c.body || '');
+            }
+            require('fs').writeFileSync('/tmp/issue.md', parts.join('\n'));
+
+      - name: Suggest approach and test cases with AI
+        id: ai
+        uses: actions/ai-inference@v1
+        with:
+          model: ${{ env.AI_MODEL }}
+          system-prompt-file: .github/prompts/ticket-plan.md
+          prompt-file: /tmp/issue.md
+          max-tokens: 3000
+
+      - name: Post suggestions comment
+        uses: actions/github-script@v7
+        env:
+          ISSUE_NUMBER: ${{ matrix.number }}
+          AI_RESPONSE: ${{ steps.ai.outputs.response }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = parseInt(process.env.ISSUE_NUMBER, 10);
+            const body = [
+              '<!-- ticket-automation:plan -->',
+              '## 🛠️ Implementation suggestions & test cases',
+              '',
+              '_Auto-generated on `ready → develop`._',
+              '',
+              process.env.AI_RESPONSE || '_(empty AI response)_',
+            ].join('\n');
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
