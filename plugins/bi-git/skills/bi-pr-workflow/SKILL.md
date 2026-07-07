@@ -21,13 +21,15 @@ small scope, clear narrative, zero surprises.
    by layer (refactor-first PR, then feature PR) or by vertical slice.
 5. Clean the commit history: squash fixup noise (`wip`, `address review`)
    so each remaining commit stands alone.
+6. **Check for a repo PR template** (`cat .github/pull_request_template.md` or
+   look in `.github/PULL_REQUEST_TEMPLATE/`). If one exists, use it as the
+   description structure — do not replace it with the default template below.
 
 ## PR title and description
 
 Title follows the same convention as commits: `type(scope): subject`.
 
-Description template (adapt to the repo's PR template if one exists — check
-`.github/pull_request_template.md` first):
+Description template (use when the repo has no PR template):
 
 ```markdown
 ## What
@@ -69,6 +71,10 @@ Rules:
 ## Anti-patterns
 
 - Do NOT open a PR whose description is empty or just repeats the title.
+  An empty description leaves reviewers without context for the change, makes
+  git history harder to navigate later, and forces future contributors to
+  reverse-engineer intent from the diff alone. Always write at least a What and
+  Why, even for small changes.
 - Do NOT mix "drive-by" fixes into a feature PR — separate PR, easy approve.
 - Do NOT mark threads resolved on the reviewer's behalf without a change or
   an agreed reply.

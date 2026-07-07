@@ -40,9 +40,11 @@ Breaking change: append `!` after type/scope (`feat(api)!: ...`) and add a
 ### Subject rules
 
 - Imperative mood: "add", not "added" or "adds"
-- Lowercase after the colon, no trailing period
-- Max ~72 characters; if you can't fit, the commit is probably doing too much
+- Lowercase after the colon, **no trailing period**
+- **Max ~72 characters** — if you can't fit, the commit is probably doing too much
 - Say WHAT changed at a level useful to a reader scanning `git log --oneline`
+
+> **Quick checklist before finalising a subject line:** imperative verb ✓  lowercase after colon ✓  no period at the end ✓  ≤72 chars ✓
 
 ### Body rules
 
