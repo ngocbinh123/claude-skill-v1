@@ -57,7 +57,7 @@ After creating and pushing a feature branch, the branch must be linked to the
 ticket in GitHub's Development section (issue sidebar:
 "Create a branch for this issue or link a pull request").
 
-This is a manual step in the GitHub UI or via `gh issue develop <number> --branch <branch>`.
+This is a manual step in the GitHub UI or via `gh issue develop <number> --name <branch>`.
 
 ## PR template
 

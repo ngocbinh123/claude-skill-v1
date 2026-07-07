@@ -25,7 +25,7 @@ Full branch-naming and commit-format rules: see
    `<type>/<ticket-id>-<description>`, e.g. `feature/123-add-login` → `123`).
    If no id can be parsed, ask the user for it before continuing.
 4. Remind the user to link the branch to the ticket's Development section if
-   not yet done (`gh issue develop <id> --branch <branch>` or GitHub UI).
+   not yet done (`gh issue develop <id> --name <branch>` or GitHub UI).
 
 ## cp — commit and push
 
@@ -34,10 +34,13 @@ Full branch-naming and commit-format rules: see
    all or selectively.
 2. Determine the commit type/scope from the change (reuse `bi-commit-convention`
    rules — check `git log --oneline -5` for the project's scope convention).
-3. Build the commit message: `type(scope): subject (#<ticket-id>)`.
+3. Build the commit message following `git-rule.md`: `type(scope): subject (#<ticket-id>)`.
    - Subject in imperative mood, ≤ 72 chars total.
-   - If the user supplied a message, verify it contains the ticket id; if not,
-     inject `(#<ticket-id>)` or ask for confirmation.
+   - Ticket id in subject is preferred. Footer-only (`Closes #<ticket-id>` or
+     `Refs #<ticket-id>`) is also accepted when the subject is near the limit.
+   - If the user supplied a message, verify it contains the ticket id in at
+     least one accepted form; if not, inject `(#<ticket-id>)` or ask for
+     confirmation.
 4. Commit: `git commit -m "<message>"`.
 5. Push: `git push origin <branch>` (use `--set-upstream` if the branch has
    no upstream yet).
@@ -62,7 +65,8 @@ Full branch-naming and commit-format rules: see
 
 ## Verification
 
-- `git log --oneline -1` confirms the commit message contains the ticket id.
+- `git log -1 --format="%B"` confirms the full commit message (subject + body +
+  footer) contains the ticket id in at least one accepted form.
 - `gh pr view` confirms the PR exists with a non-empty description.
 - `gh issue view <id> --comments` confirms the PR-link comment is present.
 

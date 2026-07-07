@@ -54,7 +54,8 @@ commit message "update styles" (no ticket id).
 **Expected behaviors:**
 - [ ] Detects that the proposed message lacks the ticket id (`789`)
 - [ ] Rewrites or proposes a message containing `789`, e.g.
-      `feat(ui): add dark mode [#789]` or `feat(ui): add dark mode (#789)`
+      `feat(ui): add dark mode (#789)` (inline) or with `Closes #789` in
+      the footer
 - [ ] Does NOT commit with the bare message "update styles"
 
 ## S6: Branch not linked to ticket Development section
