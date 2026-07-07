@@ -1,5 +1,11 @@
 # Changelog — bi-git
 
+## 0.2.0 — 2026-07-07
+
+- Add `bi-git-workflow` skill: `cp` (commit + push with ticket id guard) and
+  `pr` (create PR from template + post PR link comment on ticket); includes
+  branch guard for `main`/`master` and `references/git-rule.md`.
+
 ## 0.1.0 — 2026-07-05
 
 - Initial release with three skills: `bi-commit-convention`, `bi-rebase-conflict`,
