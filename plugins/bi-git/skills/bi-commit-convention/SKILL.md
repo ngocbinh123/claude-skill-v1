@@ -60,7 +60,9 @@ Breaking change: append `!` after type/scope (`feat(api)!: ...`) and add a
 3. Determine `type` from the dominant intent of each commit, not the file type.
 4. Pick `scope` from the project's existing convention — check
    `git log --oneline -20` first and mirror what the repo already uses.
-5. Write the message. If a body is needed, explain the reason for the change.
+5. Write the message. Verify the subject is ≤ 72 characters — count if unsure;
+   if it does not fit, the commit is likely doing too much (split it further).
+   If a body is needed, explain the reason for the change.
 6. Verify nothing unintended is staged (`git diff --cached --stat`).
 
 ## Examples
