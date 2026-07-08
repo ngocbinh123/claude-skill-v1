@@ -58,8 +58,19 @@ Rules:
 
 ## Responding to review
 
-1. Address every comment — with a code change or a reasoned reply, never
-   silence.
+**Step 1 — Triage all comments before touching any code:**
+
+| Source | Action |
+|--------|--------|
+| `@ngocbinh` | Always fix — no exceptions. |
+| Any reviewer, labelled `blocking` / `must-fix` / `high` | Fix. |
+| Suggestions, nits, style opinions (no label or `low`/`nit`) | Evaluate: fix only if straightforward (< 5 min). Otherwise reply with a reasoned response. |
+| Factually wrong suggestions | Do NOT implement. Reply politely with a technical reason. Offer a follow-up issue if the idea has merit. |
+
+**Step 2 — Implement and reply:**
+
+1. Work through every comment — none ignored, each receives either a code
+   change or a written reply.
 2. Push review fixes as NEW commits (don't force-push mid-review) so the
    reviewer can see what changed; squash after approval if the repo prefers.
 3. If a suggestion is wrong or out of scope, say why briefly and offer a

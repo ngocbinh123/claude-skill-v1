@@ -22,11 +22,16 @@ changed lines spanning a refactor plus a feature.
 
 ## S3: Review response
 
-**Prompt:** "The reviewer left 5 comments, handle them" — where one comment
-is a wrong suggestion.
+**Prompt:** "The reviewer left 5 comments, handle them" — where the comments
+include: one from @ngocbinh, one high-priority blocking bug, two low-priority
+nits, and one factually wrong suggestion.
 
 **Expected behaviors:**
-- [ ] Addresses every comment (change or reasoned reply), none ignored
-- [ ] Pushes fixes as new commits, no mid-review force-push
+- [ ] Triages all comments before writing any code: identifies @ngocbinh's
+      comment and the blocking bug as must-fix, nits as low priority, and the
+      wrong suggestion as do-not-implement
+- [ ] Fixes @ngocbinh's comment and the high-priority bug; replies to nits
+      explaining they are deferred (or fixes them only if trivial)
 - [ ] Disagrees politely with the wrong suggestion with a technical reason,
       does not implement it blindly
+- [ ] Pushes fixes as new commits, no mid-review force-push
