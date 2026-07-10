@@ -64,8 +64,14 @@ Runs every dispatcher cycle for each eligible ticket:
    - **OPEN** → step 2.
 2. Anything NEW since last processed timestamp? (stored in a hidden marker
    comment on the PR; still plain bash)
-   - new review comments, or CI turned red → step 3. Otherwise exit (0 tokens).
-3. Single `claude -p` session:
+   - Marker format — a PR comment whose entire body is:
+     `<!-- ai-review-watch: last=2026-07-10T10:00:00Z -->`
+     (ISO-8601 UTC). One marker comment per PR, edited in place on each
+     session (never a new comment). No marker yet = everything is new.
+   - New review comments after `last`, or CI turned red → step 3.
+     Otherwise exit (0 tokens).
+3. Claim with `reviewing`, then a single `claude -p` session (full prompt
+   in §7):
    - Triage new comments by severity. **Fix only critical + high + CI
      failures.** Medium/low → short reply "noted, deferred", no code.
      Reviewers can force priority by writing `critical:` in a comment.
@@ -74,6 +80,11 @@ Runs every dispatcher cycle for each eligible ticket:
    - **CI-fix limit: 3 attempts per session.** Still red after 3 → add
      `agent-ignore` to the ticket + comment on both PR and ticket summarizing
      the 3 attempts. Human fixes, then removes `agent-ignore` to resume.
+4. After the session (success or give-up): update the marker comment to the
+   current time, then **remove `reviewing`**. `reviewing` lives only for the
+   duration of one session — there is no `reviewed` done-marker because the
+   handler recurs until merge/close. A `reviewing` label older than
+   `STALE_CLAIM_HOURS` means a crashed session → stale-claim recovery (§4).
 
 ## 4. `agent-ignore` — global kill-switch
 
@@ -128,7 +139,7 @@ self-throttles to human review speed.
 | `status:<value>` | CI | Board Status mirror (do not hand-edit) |
 | `planning` / `planned` | dispatcher | Brainstorm running / done |
 | `cooking` / `cooked` | dispatcher | Cook running / done (PR exists) |
-| `reviewing` | dispatcher | Review-fix session in flight |
+| `reviewing` | dispatcher | Review-fix session in flight; added at session start, removed at session end (§3.4) — no `reviewed` done-marker, the handler recurs until merge/close |
 | `agent-ignore` | human, or agent on give-up | Kill-switch: agent skips this ticket entirely |
 
 Reading a ticket's labels answers "has it been processed, and where is it in
@@ -185,6 +196,23 @@ pass/fail gate, and prefer the recommended approach from Ideas unless the
 codebase contradicts it (if you deviate, say why in the PR description).
 If no brainstorm comment exists, proceed from the issue body alone and
 note that in the PR description."
+
+# review-watch (dispatcher pre-computes the <...> values in bash, step §3.2)
+claude -p "PR <pr-url> for issue #<N>. New review comments since <last>:
+<comment list: author, timestamp, body, comment-url>.
+CI status: <green | red, with failing job names and log links>.
+
+Triage each new comment by severity (critical / high / medium / low).
+A comment starting with 'critical:' is always critical. Fix ONLY
+critical + high + CI failures, in the PR's worktree/branch:
+- For each fix: commit, push to the PR branch, reply to the addressed
+  comment with the fix commit SHA.
+- Medium/low: reply exactly 'noted, deferred' — do not change code.
+- CI red: diagnose from the logs and fix. HARD LIMIT: 3 fix attempts
+  this session. If CI is still red after the 3rd push, stop and print
+  the line GIVE-UP: <one-line summary of the 3 attempts> as your final
+  output (the dispatcher turns this into agent-ignore + comments).
+Never force-push, never push to master, never merge the PR."
 ```
 
 Success criteria the dispatcher checks before swapping done-markers
