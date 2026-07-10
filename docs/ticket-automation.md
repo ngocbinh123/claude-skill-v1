@@ -227,7 +227,7 @@ Success criteria the dispatcher checks before swapping done-markers
 - brainstorm: a new issue comment containing `<!-- ai-brainstorm -->`
   exists → swap `planning` → `planned`. Otherwise leave `planning` for
   stale-claim recovery (§4).
-- cook: an open PR referencing the issue exists → swap `cooking` → `cooked`.
+- cook: an open PR referencing the issue, created after the dispatcher added `cooking`, exists → swap `cooking` → `cooked`.
 
 Headless permission note: `claude -p` needs an explicit allowlist covering
 `gh`, `git`, and the test runner — never blanket `bypassPermissions`. Never
