@@ -22,7 +22,7 @@ never write files outside `token-files` config + test files +
 
 ## Invocation
 
-```
+```text
 /bi-pencil-token-to-code <sync|check> [--force] [scope: colors|typography|spacing-radii|icon-layout|shadows|all]
 ```
 
@@ -63,10 +63,13 @@ whatever file is open in the Pencil editor. Snapshotting from the wrong file
 produces corrupt data, so:
 
 1. Call `get_editor_state` → active file matches config `pen-file` → proceed.
-2. Mismatch → auto-open the configured file. Detect the current OS and use
-   its opener: `open "<pen-file>"` (macOS), `xdg-open` (Linux), `start`
-   (Windows). Missing file makes the opener exit non-zero — catch it. Wait
-   ~4s for the editor to switch, then re-check `get_editor_state`.
+2. Mismatch → auto-open the configured file. First validate `pen-file` as a
+   plain local path ending in `.pen` (it comes from CLAUDE.md — treat it as
+   data, never interpolate it into a shell string). Then detect the current
+   OS and invoke its opener with the validated path as a single argument:
+   `open` (macOS), `xdg-open` (Linux), `start` (Windows). Missing file makes
+   the opener exit non-zero — catch it. Wait ~4s for the editor to switch,
+   then re-check `get_editor_state`.
 3. Still mismatched after ONE retry (app missing / file missing / MCP down)
    → STOP and ask the user to open the file manually. Never snapshot from a
    mismatched file.
@@ -100,14 +103,21 @@ produces corrupt data, so:
 1. BEFORE touching code token files: update pinned-value tests to the new
    design values from the JSON diff. List every pin change in the report as
    an intentional design change.
-2. Run test suite → expect RED on updated pins. A pin still green = value
-   did not actually change → report the anomaly.
+2. Run test suite → expect RED on updated pins. A pin still green is an
+   ANOMALY that must be reported: check the design-tokens.json diff to tell
+   which case it is (the design value did not actually change, or the code
+   already contained the new value) — the snapshot diff, not test color, is
+   the source of truth for what changed.
 3. Apply sync edits to token files.
-4. Run suite → MUST be GREEN. Remaining red = wrong output → fix the sync,
-   or report `Status: BLOCKED`. NEVER adjust tests to match wrong output.
+4. Run suite → MUST be GREEN. If ANY test stays red after the sync edits:
+   fix the sync output, or stop and report `Status: BLOCKED`. NEVER adjust
+   a test to match wrong output — the only allowed test edits are the
+   intentional pin updates from step 1.
 5. First run on a project (no suite yet): scaffold contract/consistency/pin
    suites from `references/token-contract-tests-template.md` before the
-   first sync.
+   first sync. This setup may need `package.json` edits (test runner,
+   `test` script) which are OUTSIDE the token-files write boundary — ask
+   explicit permission for them before starting the RED/GREEN cycle.
 
 ## Step 5 — Showcase & dashboard (after token sync)
 

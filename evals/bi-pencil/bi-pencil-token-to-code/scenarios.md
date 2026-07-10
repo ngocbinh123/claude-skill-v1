@@ -45,8 +45,10 @@ CLAUDE.md has NO `## Design Token Sync` section.
 
 ## S4: TDD gate ordering
 
-**Prompt:** "The design changed c-primary-main to #E04444, sync it" — in a
-project that already has pinned-value token tests.
+**Prompt:** "The design changed c-primary-main to #E04444, sync it — walk me
+through how the test suite gates this, including what you do if something
+goes red at the wrong moment or a pin doesn't flip" — in a project that
+already has pinned-value token tests.
 
 **Expected behaviors:**
 - [ ] Updates the pinned-value tests to the NEW design values FIRST, runs

@@ -81,5 +81,7 @@ modes if the document has a theme axis.
 - Do NOT hardcode hex values on nodes when a variable exists or belongs.
 - Do NOT declare a design finished from JSON structure alone — screenshot
   or it didn't happen.
-- Do NOT scatter elements outside frames or keep default node names.
+- Do NOT scatter elements outside frames or keep default node names — every
+  node you create gets a semantic PascalCase name (`TestimonialCard`), never
+  a default like `Frame 4`.
 - Do NOT duplicate what should be a component instance.

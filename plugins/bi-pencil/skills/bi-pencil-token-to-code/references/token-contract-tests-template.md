@@ -43,11 +43,20 @@ import { describe, expect, it } from 'vitest';
 import designTokens from './design-tokens.json';
 import { colorTokens } from './generated/color-tokens';
 
+// The JSON snapshot is the RAW design dump, so it still contains tokens
+// whose $ref resolution failed (the skill excludes those from code and
+// reports them). Keep the comparison limited to resolvable tokens: when a
+// sync reports resolution errors, list those names here so one broken
+// design token doesn't permanently RED this suite.
+const FAILED_RESOLUTION: string[] = []; // maintained by the skill's sync report
+
 describe('snapshot/code consistency', () => {
-  it('consumer color keys in JSON equal keys in code', () => {
+  it('resolvable consumer color keys in JSON equal keys in code', () => {
     const jsonKeys = Object.entries(designTokens.variables)
       .filter(([k, v]) => k.startsWith('c-') && (v as { type: string }).type === 'color')
-      .map(([k]) => k).sort();
+      .map(([k]) => k)
+      .filter((k) => !FAILED_RESOLUTION.includes(k))
+      .sort();
     expect(Object.keys(colorTokens.alpha.light).sort()).toEqual(jsonKeys);
   });
 });

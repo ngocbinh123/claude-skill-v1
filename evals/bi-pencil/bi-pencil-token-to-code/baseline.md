@@ -12,7 +12,7 @@ red-after-sync/pin-anomaly commitments (S4), hardcoded icon approximation
 path (S6). S5 failure was scenario ambiguity (config presence unstated),
 fixed in scenarios.md. Results: `evals/results/2026-07-10T07-32-31-888Z/`.
 
-## 2026-07-10 — GREEN
+## 2026-07-10 — GREEN (advice-mode evidence)
 
 After tightening SKILL.md (OS-detected auto-open, collect-all-errors +
 clean-tokens-still-sync, pin-anomaly + BLOCKED anti-patterns, data-driven

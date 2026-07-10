@@ -13,7 +13,7 @@ never hand-edit `.pen` files as a workaround.
 
 ## Claude Code
 
-```
+```text
 /plugin marketplace add ngocbinh123/claude-skill-v1
 /plugin install bi-pencil@bi-skills
 ```
@@ -27,7 +27,7 @@ code", "token drift check") or explicitly via
 Skills follow the open Agent Skills standard; install with any
 SKILL.md-compatible installer:
 
-```
+```shell
 npx skills add ngocbinh123/claude-skill-v1
 ```
 

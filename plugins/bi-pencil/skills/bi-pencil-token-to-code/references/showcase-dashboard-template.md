@@ -25,7 +25,7 @@ react-router — adapt paths/router/framework to the target project.
 
 ## Layout (example)
 
-```
+```text
 src/pages/design-dashboard/
   DesignDashboardPage.tsx      # links to all showcases + theme-dim switcher context
   ColorShowcasePage.tsx        # swatch grid per c-* token, all theme combos

@@ -22,17 +22,19 @@ components, does NOT expose brand switching to end users (dev preview only).
 
 ## Invocation
 
-```
+```text
 /bi-pencil-token-to-theme <build|verify> [--force]
 ```
 
 | Mode | Behavior |
 |------|----------|
-| `build` (default) | Detect token change → run affected spec phases (all on first build) → verify → report |
+| `build` | Detect token change → run affected spec phases (all on first build) → verify → report |
 | `verify` | Read-only: run theme tests + build, report; writes nothing |
-| `--force` | Skip dirty-tree guard + confirmations; re-run ALL spec phases regardless of hash |
+| `--force` | `build` only: skip dirty-tree guard + confirmations; re-run ALL spec phases regardless of hash |
 
-No arg → ask the user for mode.
+No mode given → ask the user (never assume). `--force` combines only with
+`build` — `verify` is read-only by definition, so reject `verify --force`
+and explain why.
 
 ## Step 1 — Config discovery (MANDATORY first)
 
@@ -49,17 +51,22 @@ missing key; never guess paths. Do no build work until the config exists.
 
 ## Step 2 — Change detection (tokens-hash)
 
+The FIRST action of every `build` — before touching any phase:
+
 1. Compute `sha256` of the committed `design-tokens.json` (from the sync
    skill's tokens dir, located via `token-files`).
 2. Read `// tokens-hash: <sha>` header from the theme module (first of
    `theme-files`).
 3. Decide:
    - **No theme module or no hash header → NEW build**: run all spec phases.
-   - **Hash differs → UPDATE**: diff `design-tokens.json` (git) to see which
-     token groups changed; run only spec phases touched by those groups
-     (colors → palette phase; typography tokens → typography phase;
-     radii/shadows → shape phase). Unchecked spec items from an aborted
-     earlier run also re-run (resume).
+   - **Hash differs → UPDATE**: diff `design-tokens.json` against the
+     REVISION that produced the stored hash (find it in git history — the
+     change may already be committed, so a working-tree diff can be empty
+     and is not sufficient). The diff tells which token groups changed; run
+     only spec phases touched by those groups (colors → palette phase;
+     typography tokens → typography phase; radii/shadows → shape phase).
+     Cannot identify that revision → run ALL phases (conservative).
+     Unchecked spec items from an aborted earlier run also re-run (resume).
    - **Hash equal → NO CHANGE: ASK** — "Tokens unchanged since last theme
      build. Rebuild all / verify-only / abort?" Never silently rebuild.
 4. After a successful build, write the new hash into the theme module header.
@@ -111,8 +118,11 @@ Canonical phases:
 
 - Do NOT rebuild silently when the tokens-hash is unchanged — always ask
   (rebuild / verify-only / abort).
+- Do NOT start any spec phase before the hash comparison of Step 2 — it is
+  always the first action of a build.
 - Do NOT write design hex/px literals into the theme module — every design
-  value comes from a token import.
+  value comes from a token import, and the zero-hex lint-style test must be
+  in place (add it if missing) before any theme edit lands.
 - Do NOT weaken or delete a red test to force GREEN — fix the
   implementation or report BLOCKED.
 - Do NOT edit token files, `.pen` files, feature components, or CI config —
