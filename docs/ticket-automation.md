@@ -6,11 +6,11 @@ Status columns: `Backlog` → `Ready` → `In progress` → `In review` → `Don
 Hybrid architecture agreed on 2026-07-10. This document is the source of
 truth: it contains everything needed to rebuild the system on a new machine.
 
-> **Implementation status:** DESIGN. The current
-> `.github/workflows/ticket-status-automation.yml` still implements the older
-> CI-side AI design (GitHub Models). The components below replace it:
-> the CI workflow becomes mirror-only and all AI work moves to a local
-> dispatcher.
+> **Implementation status:** IMPLEMENTED (2026-07-10). The CI workflow is
+> mirror-only, all AI work runs in `tools/ai-ticket-dispatcher.sh`, and the
+> launchd template lives at
+> `tools/com.ngocbinh123.ai-ticket-dispatcher.plist`. Activation gated on
+> the setup checklist in §8 (pre-labels + merge to master + dry-run).
 
 ## 1. Why hybrid (CI detects, local executes)
 
