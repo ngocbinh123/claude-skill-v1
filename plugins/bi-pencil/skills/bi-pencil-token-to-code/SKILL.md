@@ -67,9 +67,11 @@ produces corrupt data, so:
    plain local path ending in `.pen` (it comes from CLAUDE.md — treat it as
    data, never interpolate it into a shell string). Then detect the current
    OS and invoke its opener with the validated path as a single argument:
-   `open` (macOS), `xdg-open` (Linux), `start` (Windows). Missing file makes
-   the opener exit non-zero — catch it. Wait ~4s for the editor to switch,
-   then re-check `get_editor_state`.
+   `open` (macOS), `xdg-open` (Linux), `start "" <path>` (Windows — the
+   explicit empty `""` is required because `start` treats the first quoted
+   argument as the window title, not the path). Missing file makes the
+   opener exit non-zero — catch it. Wait ~4s for the editor to switch, then
+   re-check `get_editor_state`.
 3. Still mismatched after ONE retry (app missing / file missing / MCP down)
    → STOP and ask the user to open the file manually. Never snapshot from a
    mismatched file.
