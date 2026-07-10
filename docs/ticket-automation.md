@@ -8,7 +8,8 @@ truth: it contains everything needed to rebuild the system on a new machine.
 
 > **Implementation status:** IMPLEMENTED (2026-07-10). The CI workflow is
 > mirror-only, all AI work runs in `tools/ai-ticket-dispatcher.sh`, and the
-> launchd template lives at
+> schedule is a Claude Code routine (`ai-ticket-dispatcher`, currently
+> paused). A launchd template is kept as the app-independent alternative at
 > `tools/com.ngocbinh123.ai-ticket-dispatcher.plist`. Activation gated on
 > the setup checklist in §8 (pre-labels + merge to master + dry-run).
 
@@ -24,7 +25,7 @@ truth: it contains everything needed to rebuild the system on a new machine.
   GitHub labels, and the local worker drains the backlog when it comes online.
 
 ```
-CI cron (15 min, GitHub)          Local dispatcher (10 min, launchd, macOS)
+CI cron (15 min, GitHub)          Local dispatcher (10 min, Claude Code routine)
 ────────────────────────          ─────────────────────────────────────────
 poll board via GraphQL            evaluate conditions per ticket (labels)
 mirror Status → status:* label    claim → run Claude skill → mark result
@@ -115,7 +116,8 @@ MAX_WORKERS=3        # parallel claude -p sessions (2–3 recommended)
 MAX_COOK_WORKERS=1   # cook cap — keep 1: parallel test suites starve CPU
                      # and cause flaky-timeout TDD failures; raise only after
                      # observing machine load
-POLL_INTERVAL=600    # launchd StartInterval, seconds
+POLL_INTERVAL=600    # scheduler interval, seconds (routine cron */10, or
+                     # launchd StartInterval in the alternative setup)
 STALE_CLAIM_HOURS=2
 ```
 
@@ -157,7 +159,8 @@ the pipeline" at a glance; board views can filter on them.
 | --- | --- | --- |
 | CI workflow (rewrite) | `.github/workflows/ticket-status-automation.yml` | schedule 15 min: GraphQL board scan → mirror Status to `status:*` labels. Nothing else. Delete the AI jobs and `.github/prompts/ticket-*.md`. |
 | Dispatcher | `tools/ai-ticket-dispatcher.sh` | everything in §2–§5; `--dry-run` flag prints planned actions without executing |
-| launchd agent | `~/Library/LaunchAgents/com.ngocbinh123.ai-ticket-dispatcher.plist` | run dispatcher every `POLL_INTERVAL`; logs to `~/Library/Logs/ai-ticket-dispatcher.log` |
+| Scheduler (primary) | Claude Code routine `ai-ticket-dispatcher` (`~/.claude/scheduled-tasks/ai-ticket-dispatcher/SKILL.md`) | cron `*/10 * * * *`: run one `bash tools/ai-ticket-dispatcher.sh` cycle and summarize the output. Runs only while the Claude Code app is open; a missed run fires on next launch (acceptable: labels persist, backlog drains). |
+| Scheduler (alternative, app-independent) | `tools/com.ngocbinh123.ai-ticket-dispatcher.plist` → copy to `~/Library/LaunchAgents/` | launchd agent, `StartInterval` = `POLL_INTERVAL`; logs to `~/Library/Logs/ai-ticket-dispatcher.log`. Use INSTEAD of the routine, never both. |
 
 Dispatcher skill invocations (labels/comments via `gh`; board moves via
 `gh api graphql` mutation `updateProjectV2ItemFieldValue`):
@@ -252,9 +255,15 @@ Per machine:
 
 4. Prereqs: `gh auth login` (repo + project scopes), `claude` CLI logged in,
    personal skills present in `~/.claude/skills` (`ck:*`, `binh-gh-*`).
-5. Copy `tools/ai-ticket-dispatcher.sh`, install the launchd plist
-   (`launchctl load ~/Library/LaunchAgents/com.ngocbinh123.ai-ticket-dispatcher.plist`).
-6. First run with `--dry-run`: verify the planned actions, then enable.
+5. Create the Claude Code routine `ai-ticket-dispatcher` (cron
+   `*/10 * * * *`) whose prompt runs one
+   `bash tools/ai-ticket-dispatcher.sh` cycle and summarizes the output —
+   or, for an app-independent setup, install the launchd plist instead
+   (`cp tools/com.ngocbinh123.ai-ticket-dispatcher.plist ~/Library/LaunchAgents/`
+   + `launchctl load …`). One scheduler only, never both.
+6. First run with `--dry-run`: verify the planned actions, then enable the
+   routine (it is created paused). For the routine, click "Run now" once to
+   pre-approve its Bash permission so future runs don't stall on prompts.
 
 ## 9. Operating notes
 
