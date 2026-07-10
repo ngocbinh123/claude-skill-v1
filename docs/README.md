@@ -4,6 +4,7 @@ Foundational documents — read in this order before contributing:
 
 | Doc | Answers |
 |---|---|
+| [project-overview.md](project-overview.md) | Declared project facts — board, stack, git rules, quality gates (values + links, no rule content) |
 | [goals.md](goals.md) | Why this project exists, who it serves, what is in/out of scope |
 | [architecture.md](architecture.md) | How the repo is structured, the dependency rule, key decisions and their rationale |
 | [versioning.md](versioning.md) | How versions, releases, and distribution channels work |

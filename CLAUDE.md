@@ -3,6 +3,8 @@
 Monorepo of Claude Code plugins (skills for Git, React Native, Android, iOS).
 Marketplace manifest: `.claude-plugin/marketplace.json`.
 
+Project declarations (board, architecture, git & design rules): `docs/project-overview.md`
+
 Foundational docs (read before structural changes): `docs/README.md` —
 goals, architecture + decision log, versioning, governance, roadmap.
 
