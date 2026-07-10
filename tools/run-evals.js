@@ -168,13 +168,23 @@ function judge(caseDef, response) {
     `Be strict: vague gestures toward an item do not pass. ` +
     `Respond with ONLY this JSON, no other text:\n` +
     `{"results":[{"item":1,"pass":true,"reason":"..."}, ...]}`;
-  const out = runClaude(judgePrompt, JUDGE_MODEL);
-  const jsonText = out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1);
-  const parsed = JSON.parse(jsonText);
-  if (!Array.isArray(parsed.results) || parsed.results.length !== caseDef.expected.length) {
-    throw new Error(`judge returned ${parsed.results?.length ?? 0} results, expected ${caseDef.expected.length}`);
+  // The judge occasionally returns malformed JSON or the wrong number of
+  // items — retry a couple of times before failing the case.
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const out = runClaude(judgePrompt, JUDGE_MODEL);
+      const jsonText = out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1);
+      const parsed = JSON.parse(jsonText);
+      if (!Array.isArray(parsed.results) || parsed.results.length !== caseDef.expected.length) {
+        throw new Error(`judge returned ${parsed.results?.length ?? 0} results, expected ${caseDef.expected.length}`);
+      }
+      return parsed.results;
+    } catch (err) {
+      lastErr = err;
+    }
   }
-  return parsed.results;
+  throw lastErr;
 }
 
 // ---------- reporting ----------
