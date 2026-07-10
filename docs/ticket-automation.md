@@ -232,9 +232,24 @@ Success criteria the dispatcher checks before swapping done-markers
   stale-claim recovery (§4).
 - cook: an open PR referencing the issue, created after the dispatcher added `cooking`, exists → swap `cooking` → `cooked`.
 
-Headless permission note: `claude -p` needs an explicit allowlist covering
-`gh`, `git`, and the test runner — never blanket `bypassPermissions`. Never
-push to `master`; branches + PRs only.
+Headless permission note: an unattended `claude -p` cannot answer a permission
+prompt — a blocked tool call is dropped silently and the session drifts off its
+task. Sessions therefore run with `--dangerously-skip-permissions`
+(`BYPASS_PERMISSIONS=1`, the default), accepting that a session may run any
+command inside `REPO_DIR`. Set `BYPASS_PERMISSIONS=0` to fall back to the
+`CLAUDE_ALLOWED_TOOLS` allowlist, which must then cover `gh`, `git`, the test
+runner, and `bash`/`sh` for verification scripts. Never push to `master`;
+branches + PRs only.
+
+`/ck:vibe` builds its worktree outside `REPO_DIR`, so `CLAUDE_EXTRA_DIRS` is
+passed as `--add-dir`; without it every tool call in that worktree is rejected
+as an out-of-sandbox path.
+
+Session bounding: each `claude -p` is killed after `SESSION_TIMEOUT_SECS`
+(default 1800). A session that loses the API otherwise retries for the better
+part of an hour while holding its worker slot. Session transcripts are written
+to `LOG_DIR` (default `~/.claude/logs/ai-ticket-dispatcher/<cycle>/`) and
+survive the cycle, so a failed handler stays debuggable.
 
 ## 8. Setup checklist (repeat on any new machine)
 

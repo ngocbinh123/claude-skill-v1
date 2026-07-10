@@ -24,9 +24,21 @@ MAX_WORKERS="${MAX_WORKERS:-3}"       # parallel claude -p sessions
 MAX_COOK_WORKERS="${MAX_COOK_WORKERS:-1}" # cook cap: parallel test suites starve CPU
 STALE_CLAIM_HOURS="${STALE_CLAIM_HOURS:-2}"
 LOCK_DIR="${LOCK_DIR:-${TMPDIR:-/tmp}/ai-ticket-dispatcher.lock}"
-# Headless permission allowlist (spec §7): gh, git, file tools, test runner.
-# Never blanket bypassPermissions. Space-separated tool specs.
-CLAUDE_ALLOWED_TOOLS="${CLAUDE_ALLOWED_TOOLS:-Read Write Edit Glob Grep Bash(gh:*) Bash(git:*) Bash(node:*) Bash(npm:*) Bash(npx:*) Bash(mkdir:*) Bash(ls:*)}"
+# Headless permission allowlist: gh, git, file tools, test runner. Used only
+# when BYPASS_PERMISSIONS=0. Space-separated tool specs.
+CLAUDE_ALLOWED_TOOLS="${CLAUDE_ALLOWED_TOOLS:-Read Write Edit Glob Grep Bash(gh:*) Bash(git:*) Bash(node:*) Bash(npm:*) Bash(npx:*) Bash(bash:*) Bash(sh:*) Bash(mkdir:*) Bash(ls:*) Bash(cat:*)}"
+# Unattended sessions cannot answer a permission prompt: a blocked tool call is
+# silently dropped and the session drifts. Bypassing trades the prompt for the
+# risk that a session runs any command in REPO_DIR. Set to 0 to re-arm prompts.
+BYPASS_PERMISSIONS="${BYPASS_PERMISSIONS:-1}"
+# /ck:vibe builds its worktree outside REPO_DIR; without --add-dir every tool
+# call inside that worktree is rejected as an out-of-sandbox path.
+CLAUDE_EXTRA_DIRS="${CLAUDE_EXTRA_DIRS:-$HOME/Documents/my-project/worktrees}"
+# Wall-clock ceiling per claude -p session. A session that loses the API retries
+# until it gives up (observed: 48 min) while holding its worker slot.
+SESSION_TIMEOUT_SECS="${SESSION_TIMEOUT_SECS:-1800}"
+# Session transcripts survive the cycle; WORK_DIR does not.
+LOG_DIR="${LOG_DIR:-$HOME/.claude/logs/ai-ticket-dispatcher}"
 
 DRY_RUN=0
 [ "${1:-}" = "--dry-run" ] && DRY_RUN=1
@@ -63,6 +75,10 @@ fi
 echo $$ >"$LOCK_DIR/pid"
 WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/ai-ticket-dispatcher.XXXXXX")
 trap 'rm -rf "$LOCK_DIR" "$WORK_DIR"' EXIT
+
+# Per-cycle transcript directory, kept after the cycle so failures stay debuggable.
+CYCLE_LOG_DIR="$LOG_DIR/$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$CYCLE_LOG_DIR"
 
 # -------------------------------------------------------- issue snapshot ---
 ISSUES_JSON="$WORK_DIR/issues.json"
@@ -259,11 +275,43 @@ stale_claim_recovery() {
 }
 
 # ------------------------------------------------------ claude sessions ---
-run_claude() { # <prompt> — runs in the real codebase with an explicit allowlist
-  local tools=()
-  # read -a splits on spaces without glob-expanding specs like "Bash(gh:*)"
-  read -r -a tools <<<"$CLAUDE_ALLOWED_TOOLS"
-  (cd "$REPO_DIR" && claude -p "$1" --allowedTools "${tools[@]}" 2>&1)
+# macOS ships no coreutils `timeout`. Poll the child, then escalate TERM -> KILL.
+# Returns 124 on timeout, mirroring GNU timeout.
+wait_with_timeout() { # <pid> <secs>
+  local pid=$1 secs=$2 elapsed=0
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$elapsed" -ge "$secs" ]; then
+      kill -TERM "$pid" 2>/dev/null
+      sleep 5
+      kill -KILL "$pid" 2>/dev/null
+      wait "$pid" 2>/dev/null
+      return 124
+    fi
+    sleep 5
+    elapsed=$((elapsed + 5))
+  done
+  wait "$pid"
+}
+
+run_claude() { # <prompt> — runs in the real codebase, bounded by SESSION_TIMEOUT_SECS
+  local args=(-p "$1") tools=() d pid rc
+  if [ "$BYPASS_PERMISSIONS" = 1 ]; then
+    args+=(--dangerously-skip-permissions)
+  else
+    # read -a splits on spaces without glob-expanding specs like "Bash(gh:*)"
+    read -r -a tools <<<"$CLAUDE_ALLOWED_TOOLS"
+    args+=(--allowedTools "${tools[@]}")
+  fi
+  for d in $CLAUDE_EXTRA_DIRS; do
+    [ -d "$d" ] && args+=(--add-dir "$d")
+  done
+  # exec makes the subshell BECOME claude, so the pid we time out is the real one.
+  (cd "$REPO_DIR" && exec claude "${args[@]}") 2>&1 &
+  pid=$!
+  wait_with_timeout "$pid" "$SESSION_TIMEOUT_SECS"
+  rc=$?
+  [ "$rc" = 124 ] && log "session killed after ${SESSION_TIMEOUT_SECS}s timeout" >&2
+  return "$rc"
 }
 
 run_brainstorm() { # <issue-number>
@@ -297,8 +345,8 @@ Anything blocking implementation that needs a human answer (empty if none).
 
 Post the FULL analysis (all sections above, not a summary) as ONE comment
 on issue #$n, prefixed with the marker line <!-- ai-brainstorm -->.'"
-  log "#$n: brainstorm session starting"
-  run_claude "$prompt" >"$WORK_DIR/session-brainstorm-$n.log" 2>&1
+  log "#$n: brainstorm session starting (log: $CYCLE_LOG_DIR/session-brainstorm-$n.log)"
+  run_claude "$prompt" >"$CYCLE_LOG_DIR/session-brainstorm-$n.log" 2>&1
   # Success = a new <!-- ai-brainstorm --> comment exists (exit 0 is NOT enough).
   ok=$(gh api "repos/$REPO/issues/$n/comments" --paginate --jq \
     "[.[] | select(.created_at > \"$claim_ts\" and (.body | contains(\"<!-- ai-brainstorm -->\")))] | length" 2>/dev/null)
@@ -323,8 +371,8 @@ pass/fail gate, and prefer the recommended approach from Ideas unless the
 codebase contradicts it (if you deviate, say why in the PR description).
 If no brainstorm comment exists, proceed from the issue body alone and
 note that in the PR description."
-  log "#$n: cook session starting"
-  run_claude "$prompt" >"$WORK_DIR/session-cook-$n.log" 2>&1
+  log "#$n: cook session starting (log: $CYCLE_LOG_DIR/session-cook-$n.log)"
+  run_claude "$prompt" >"$CYCLE_LOG_DIR/session-cook-$n.log" 2>&1
   # Success = an OPEN PR referencing the issue, created after the claim.
   pr=$(prs_for_issue "$n" | jq -c \
     "[.[] | select(.state == \"OPEN\" and .createdAt > \"$claim_ts\")] | sort_by(.createdAt) | last // empty")
@@ -344,7 +392,7 @@ run_review() { # <issue-number> <pr-number> <prompt-file>
   local n=$1 pr=$2 prompt_file=$3 out giveup
   log "#$n: review-fix session starting (PR #$pr)"
   out=$(run_claude "$(cat "$prompt_file")")
-  echo "$out" >"$WORK_DIR/session-review-$n.log"
+  echo "$out" >"$CYCLE_LOG_DIR/session-review-$n.log"
   giveup=$(echo "$out" | grep '^GIVE-UP:' | tail -1)
   if [ -n "$giveup" ]; then
     log "#$n: review session gave up — $giveup"
@@ -418,7 +466,8 @@ EOF
 }
 
 # ------------------------------------------------------------ main cycle ---
-log "cycle start (dry-run=$DRY_RUN, repo=$REPO, max_workers=$MAX_WORKERS, max_cook=$MAX_COOK_WORKERS)"
+log "cycle start (dry-run=$DRY_RUN, repo=$REPO, max_workers=$MAX_WORKERS, max_cook=$MAX_COOK_WORKERS, bypass_perms=$BYPASS_PERMISSIONS, session_timeout=${SESSION_TIMEOUT_SECS}s)"
+log "session logs: $CYCLE_LOG_DIR"
 ensure_labels
 build_priority_map
 stale_claim_recovery
