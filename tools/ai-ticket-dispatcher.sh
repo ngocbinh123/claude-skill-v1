@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # ai-ticket-dispatcher.sh — local AI ticket pipeline dispatcher.
-# Spec: docs/ticket-automation.md. CI mirrors board Status into status:*
-# labels; this script evaluates each ticket's label state and runs Claude
+# Spec: docs/ticket-automation.md. Reads each ticket's Status straight from the
+# project board, acts only on Ready / In progress / In review, and runs Claude
 # sessions (brainstorm / cook / review-fix) through a bounded worker pool.
+# Claim labels (planning/cooking/reviewing) track in-flight work.
 #
 # Usage: ai-ticket-dispatcher.sh [--dry-run]
 #   --dry-run  print planned actions (claims, sessions, mutations) without
@@ -91,7 +92,6 @@ all_issue_numbers() { jq -r '.[].number' "$ISSUES_JSON"; }
 issue_url() { jq -r --argjson n "$1" '.[] | select(.number == $n) | .url' "$ISSUES_JSON"; }
 labels_of() { jq -r --argjson n "$1" '.[] | select(.number == $n) | .labels[].name' "$ISSUES_JSON" | lc; }
 has_label() { labels_of "$1" | grep -qxF "$2"; }
-status_of() { labels_of "$1" | sed -n 's/^status://p' | head -1; }
 
 # ------------------------------------------------------ pipeline labels ---
 ensure_labels() {
@@ -154,9 +154,12 @@ board_move() { # <issue-number> <status-name>  e.g. board_move 12 "In review"
     }' -f p="$project_id" -f i="$item_id" -f f="$field_id" -f o="$option_id" >/dev/null
 }
 
-# Board Priority field (optional): number<TAB>rank, lower rank = higher prio.
-PRIORITY_TSV="$WORK_DIR/priority.tsv"
-build_priority_map() {
+# The board is the single source of truth for Status. Reading it directly means
+# no `status:*` label mirror has to exist, and no window where labels lag behind
+# what a human sees on the board.
+# Row: number<TAB>priority-rank<TAB>status (lowercased). Lower rank = higher prio.
+BOARD_TSV="$WORK_DIR/board.tsv"
+build_board_map() {
   gh api graphql --paginate \
     -f query='query($login: String!, $number: Int!, $endCursor: String) {
       user(login: $login) { projectV2(number: $number) {
@@ -166,10 +169,13 @@ build_priority_map() {
         items(first: 100, after: $endCursor) {
           pageInfo { hasNextPage endCursor }
           nodes {
-            fieldValueByName(name: "Priority") {
+            prio: fieldValueByName(name: "Priority") {
               ... on ProjectV2ItemFieldSingleSelectValue { optionId }
             }
-            content { ... on Issue { number } }
+            status: fieldValueByName(name: "Status") {
+              ... on ProjectV2ItemFieldSingleSelectValue { name }
+            }
+            content { ... on Issue { number state } }
           }
         }
       } }
@@ -177,14 +183,21 @@ build_priority_map() {
     jq -r '.data.user.projectV2 as $p
       | ($p.field.options // [] | to_entries | map({(.value.id): .key}) | add // {}) as $rank
       | $p.items.nodes[]
-      | select(.content.number != null)
-      | [.content.number, ($rank[.fieldValueByName.optionId // ""] // 999)]
-      | @tsv' >"$PRIORITY_TSV" 2>/dev/null || : >"$PRIORITY_TSV"
+      | select(.content.number != null and .content.state == "OPEN")
+      | [.content.number,
+         ($rank[.prio.optionId // ""] // 999),
+         (.status.name // "" | ascii_downcase)]
+      | @tsv' >"$BOARD_TSV" 2>/dev/null || : >"$BOARD_TSV"
 }
 prio_of() {
   local r
-  r=$(awk -F'\t' -v n="$1" '$1 == n { print $2; exit }' "$PRIORITY_TSV" 2>/dev/null)
+  r=$(awk -F'\t' -v n="$1" '$1 == n { print $2; exit }' "$BOARD_TSV" 2>/dev/null)
   echo "${r:-999}"
+}
+# Empty for an issue absent from the board, or in a column we do not act on
+# (Backlog, Done, ...). The main loop's case statement drops those.
+status_of() {
+  awk -F'\t' -v n="$1" '$1 == n { print $3; exit }' "$BOARD_TSV" 2>/dev/null
 }
 
 # --------------------------------------------------------- PR discovery ---
@@ -407,7 +420,7 @@ run_review() { # <issue-number> <pr-number> <prompt-file>
 }
 
 # ------------------------------------- review-watch cheap checks (§3.1-2) --
-# Runs every cycle for status:in review + cooked tickets, even when
+# Runs every cycle for board "In review" + cooked tickets, even when
 # 'reviewed' is present. Appends expensive review sessions to the queue.
 review_cheap_check() { # <issue-number> — may append to $QUEUE_FILE
   local n=$1 pr pr_num pr_url pr_state last comments ci prompt_file
@@ -469,10 +482,11 @@ EOF
 log "cycle start (dry-run=$DRY_RUN, repo=$REPO, max_workers=$MAX_WORKERS, max_cook=$MAX_COOK_WORKERS, bypass_perms=$BYPASS_PERMISSIONS, session_timeout=${SESSION_TIMEOUT_SECS}s)"
 log "session logs: $CYCLE_LOG_DIR"
 ensure_labels
-build_priority_map
+build_board_map
+log "board: $(grep -cE '	(ready|in progress|in review)$' "$BOARD_TSV" || true) issue(s) in Ready / In progress / In review"
 stale_claim_recovery
 
-# Re-snapshot labels after stale recovery may have changed them.
+# Re-snapshot claim labels after stale recovery may have changed them.
 if [ "$DRY_RUN" = 0 ]; then
   gh issue list -R "$REPO" --state open -L 200 --json number,url,labels >"$ISSUES_JSON"
 fi

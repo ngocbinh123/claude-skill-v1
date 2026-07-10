@@ -6,8 +6,10 @@ Status columns: `Backlog` → `Ready` → `In progress` → `In review` → `Don
 Hybrid architecture agreed on 2026-07-10. This document is the source of
 truth: it contains everything needed to rebuild the system on a new machine.
 
-> **Implementation status:** IMPLEMENTED (2026-07-10). The CI workflow is
-> mirror-only, all AI work runs in `tools/ai-ticket-dispatcher.sh`, and the
+> **Implementation status:** IMPLEMENTED (2026-07-10). The dispatcher reads
+> board Status directly, so the mirror workflow
+> (`.github/workflows/ticket-status-automation.yml`) is obsolete and stays
+> disabled. All AI work runs in `tools/ai-ticket-dispatcher.sh`, and the
 > schedule is a Claude Code routine (`ai-ticket-dispatcher`, currently
 > paused). A launchd template is kept as the app-independent alternative at
 > `tools/com.ngocbinh123.ai-ticket-dispatcher.plist`. Activation gated on
@@ -25,23 +27,26 @@ truth: it contains everything needed to rebuild the system on a new machine.
   GitHub labels, and the local worker drains the backlog when it comes online.
 
 ```
-CI cron (15 min, GitHub)          Local dispatcher (10 min, Claude Code routine)
-────────────────────────          ─────────────────────────────────────────
-poll board via GraphQL            evaluate conditions per ticket (labels)
-mirror Status → status:* label    claim → run Claude skill → mark result
-(nothing else — no AI, no rules)  worker pool, priority, kill-switch
+Local dispatcher (Claude Code routine)
+──────────────────────────────────────
+read board Status via GraphQL (source of truth)
+act only on Ready / In progress / In review
+claim → run Claude skill → mark result
+worker pool, priority, kill-switch
 ```
 
 ## 2. Trigger conditions (state-based, not transition-based)
 
 A handler runs when the ticket's *current state* matches. No transition
-history needed. `status:*` labels are the board mirror maintained by CI.
+history needed. Status is read straight from the project board each cycle;
+an issue absent from the board, or parked in any other column (Backlog,
+Done), is never touched. Claim labels track in-flight work only.
 
 | Handler | Condition (ALL must hold) | Action |
 | --- | --- | --- |
-| **BRAINSTORM** (once) | `status:ready` AND no `planning`/`planned` AND no `agent-ignore` | claim with `planning` → `claude -p "/ck:brainstorm …"`: structured analysis (Goal / Scope / Out of scope / Verification TDD / Ideas / Open questions — full prompt in §7) → post the FULL analysis as ONE issue comment marked `<!-- ai-brainstorm -->` → swap `planning` → `planned` only after the comment is verified to exist |
-| **COOK** (once) | `status:in progress` AND no `cooking`/`cooked` AND no `agent-ignore` | claim with `cooking` → `claude -p "/ck:vibe <issue-url>"` which FIRST reads the `<!-- ai-brainstorm -->` comment as the requirement contract (scope, out-of-scope, TDD test list — full prompt in §7): worktree → plan → TDD implement (tests must pass — hard gate) → push branch → create PR → **immediately** move board Status to `In review` (do not wait for CI green) + comment PR link → swap `cooking` → `cooked` only after the PR is verified to exist |
-| **REVIEW-WATCH** (session once; merged/closed check always) | `status:in review` AND `cooked` AND no `agent-ignore` | always run cheap merged/closed check (§3.1); if no `reviewing`/`reviewed`, claim with `reviewing` → review-fix session (§3) → swap `reviewing` → `reviewed` |
+| **BRAINSTORM** (once) | board `Ready` AND no `planning`/`planned` AND no `agent-ignore` | claim with `planning` → `claude -p "/ck:brainstorm …"`: structured analysis (Goal / Scope / Out of scope / Verification TDD / Ideas / Open questions — full prompt in §7) → post the FULL analysis as ONE issue comment marked `<!-- ai-brainstorm -->` → swap `planning` → `planned` only after the comment is verified to exist |
+| **COOK** (once) | board `In progress` AND no `cooking`/`cooked` AND no `agent-ignore` | claim with `cooking` → `claude -p "/ck:vibe <issue-url>"` which FIRST reads the `<!-- ai-brainstorm -->` comment as the requirement contract (scope, out-of-scope, TDD test list — full prompt in §7): worktree → plan → TDD implement (tests must pass — hard gate) → push branch → create PR → **immediately** move board Status to `In review` (do not wait for CI green) + comment PR link → swap `cooking` → `cooked` only after the PR is verified to exist |
+| **REVIEW-WATCH** (session once; merged/closed check always) | board `In review` AND `cooked` AND no `agent-ignore` | always run cheap merged/closed check (§3.1); if no `reviewing`/`reviewed`, claim with `reviewing` → review-fix session (§3) → swap `reviewing` → `reviewed` |
 
 Notes:
 
@@ -97,7 +102,7 @@ that runs every cycle even when `reviewed` is present:
 
 - First check of every handler: label present → the agent does **nothing**
   for that ticket (no brainstorm/cook/review-watch, not even the merged
-  check). Only CI's `status:*` mirroring continues (harmless bookkeeping).
+  check). Nothing else runs for it.
 - Humans add/remove it freely to take over any ticket.
 - The only automatic writer: CI-fix limit above. Every "needs a human" state
   is uniformly `agent-ignore` + an explanatory comment (no separate
@@ -144,7 +149,7 @@ self-throttles to human review speed.
 
 | Label | Writer | Meaning |
 | --- | --- | --- |
-| `status:<value>` | CI | Board Status mirror (do not hand-edit) |
+| `status:<value>` | (none) | Legacy board mirror. No longer read or written — the dispatcher queries board Status directly. Safe to delete. |
 | `planning` / `planned` | dispatcher | Brainstorm running / done |
 | `cooking` / `cooked` | dispatcher | Cook running / done (PR exists) |
 | `reviewing` / `reviewed` | dispatcher | Review-fix session running / done. Remove `reviewed` to process a new round of feedback (§3.4). Merged/closed check ignores these labels. |
@@ -157,7 +162,7 @@ the pipeline" at a glance; board views can filter on them.
 
 | Component | Path | Job |
 | --- | --- | --- |
-| CI workflow (rewrite) | `.github/workflows/ticket-status-automation.yml` | schedule 15 min: GraphQL board scan → mirror Status to `status:*` labels. Nothing else. Delete the AI jobs and `.github/prompts/ticket-*.md`. |
+| CI workflow (obsolete) | `.github/workflows/ticket-status-automation.yml` | Was the board→`status:*` label mirror. The dispatcher now reads board Status directly, so this is dead weight: keep it disabled or delete it. |
 | Dispatcher | `tools/ai-ticket-dispatcher.sh` | everything in §2–§5; `--dry-run` flag prints planned actions without executing |
 | Scheduler (primary) | Claude Code routine `ai-ticket-dispatcher` (`~/.claude/scheduled-tasks/ai-ticket-dispatcher/SKILL.md`) | cron `*/10 * * * *`: run one `bash tools/ai-ticket-dispatcher.sh` cycle and summarize the output. Runs only while the Claude Code app is open; a missed run fires on next launch (acceptable: labels persist, backlog drains). |
 | Scheduler (alternative, app-independent) | `tools/com.ngocbinh123.ai-ticket-dispatcher.plist` → copy to `~/Library/LaunchAgents/` | launchd agent, `StartInterval` = `POLL_INTERVAL`; logs to `~/Library/Logs/ai-ticket-dispatcher.log`. Use INSTEAD of the routine, never both. |
