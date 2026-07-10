@@ -57,9 +57,9 @@ Notes:
 
 ## 3. REVIEW-WATCH handler (cheap → expensive ladder)
 
-One-shot like COOK: runs once, marks `reviewed`, then ignores the ticket
-until a human removes `reviewed`. Only step 1 (merged/closed, plain bash)
-runs every cycle regardless of `reviewed`:
+Claude session is one-shot like COOK: it runs once, marks `reviewed`, then ignores the ticket
+until a human removes `reviewed`. The merged/closed check (§3.1, plain bash) is a separate cheap check
+that runs every cycle even when `reviewed` is present:
 
 1. `gh pr view --json state,mergedAt` (plain bash, no tokens):
    - **MERGED** → move board Status to `Done`, comment "merged in <PR>", stop
