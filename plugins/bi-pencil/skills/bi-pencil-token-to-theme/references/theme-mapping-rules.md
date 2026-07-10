@@ -14,9 +14,12 @@ First lines of the theme module (first entry of `theme-files`):
 // tokens-hash: <sha256 of design-tokens.json, lowercase hex>
 ```
 
-Compute: `shasum -a 256 <tokens dir>/design-tokens.json`. Update the header
-ONLY after all selected phases are GREEN. Missing header = treat as new
-build (idempotent, safe).
+Compute with whatever the environment provides, output lowercase hex:
+`shasum -a 256` (macOS), `sha256sum` (Linux),
+`node -e "console.log(require('crypto').createHash('sha256').update(require('fs').readFileSync(process.argv[1])).digest('hex'))" <file>`
+(portable), or PowerShell `Get-FileHash -Algorithm SHA256` (Windows).
+Update the header ONLY after all selected phases are GREEN. Missing
+header = treat as new build (idempotent, safe).
 
 ## Module shape
 

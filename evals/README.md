@@ -53,8 +53,8 @@ node tools/run-evals.js --dry-run                    # list parsed cases (no API
 node tools/run-evals.js --plugin bi-git              # gate one plugin
 node tools/run-evals.js --plugin bi-react-native --skill bi-rn-debugging \
   --scenario S1 --ablation                           # RED+GREEN for one scenario
-node tools/run-evals.js --plugin bi-pencil --agent cursor \
-                                                     # same scenarios through Cursor
+# same scenarios through Cursor:
+node tools/run-evals.js --plugin bi-pencil --agent cursor
 ```
 
 `--agent cursor` drives the identical scenarios through Cursor's headless

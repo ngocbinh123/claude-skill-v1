@@ -8,7 +8,7 @@ so it runs anywhere the repo is checked out — including CI/headless.
 
 ## Claude Code
 
-```
+```text
 /plugin marketplace add ngocbinh123/claude-skill-v1
 /plugin install bi-pencil@bi-skills
 ```
@@ -20,7 +20,7 @@ theme from tokens") or explicitly via `/bi-pencil-token-to-theme <build|verify>`
 
 Install with any SKILL.md-compatible installer:
 
-```
+```shell
 npx skills add ngocbinh123/claude-skill-v1
 ```
 

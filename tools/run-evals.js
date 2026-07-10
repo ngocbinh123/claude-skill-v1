@@ -123,8 +123,11 @@ function runClaude(promptText, model, systemAppend) {
 }
 
 // Empty temp cwd so cursor-agent (whose -p mode CAN run tools) has nothing
-// to touch; advice-mode instruction keeps it from trying.
+// to touch; advice-mode instruction keeps it from trying. Removed on exit.
 let cursorCwd;
+process.on('exit', () => {
+  if (cursorCwd) fs.rmSync(cursorCwd, { recursive: true, force: true });
+});
 function runCursor(promptText, model, systemAppend) {
   if (!cursorCwd) cursorCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-eval-cursor-'));
   const ADVICE =

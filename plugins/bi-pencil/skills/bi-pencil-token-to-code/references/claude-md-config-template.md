@@ -33,11 +33,22 @@ Worked example (a two-brand, light/dark React app):
 | Key | Required | Meaning |
 |-----|----------|---------|
 | `pen-file` | yes | The design-system `.pen` that MUST be open in the Pencil editor when snapshotting (get_variables ignores filePath). The skill auto-opens it when a different file is active |
-| `token-files` | yes | The ONLY code paths the skill may write (besides token test files). First entry should be the committed `design-tokens.json` audit artifact |
+| `token-files` | yes | The token-code paths the skill writes during sync. First entry should be the committed `design-tokens.json` audit artifact |
 | `token-guideline` | yes | Dir of design-token guideline docs (source for composites not expressible as Pencil variables, and the icon set/list) |
 | `rules` | yes | Fingerprint + transform contract: expected theme dimensions, consumer-tier prefix, forbidden tiers, project-specific conventions |
 | `verify-command` | no | Command run after sync (tests/build). Doubles as the TDD suite runner |
 | `showcase-dir` | no | Dir of data-driven token showcase pages + dashboard. Asked for on first Step 5 run if missing |
+
+## Write scope (complete allowlist)
+
+Two tiers — the skill must not write anything outside them:
+
+- **Sync-time writes (no extra permission needed):** `design-tokens.json`,
+  files in `token-files`, token test files, and showcase/dashboard pages
+  under `showcase-dir`.
+- **User-approved setup writes (explicit permission each time):** the
+  `## Design Token Sync` section of CLAUDE.md (config bootstrap), and
+  `package.json` when scaffolding a test runner on first run.
 
 ## Validation rules (skill-side)
 
