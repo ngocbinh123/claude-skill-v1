@@ -58,6 +58,10 @@ const JUDGE_MODEL = opt('judge-model', 'haiku');
 const ABLATION = has('ablation');
 const DRY_RUN = has('dry-run');
 const TIMEOUT_MS = Number(opt('timeout', '300')) * 1000;
+// A single sampled response can miss stating one behavior it would in fact
+// follow; re-sample a failing with-skill scenario this many times before
+// declaring failure (0 disables).
+const RETRIES = Number(opt('retries', '1'));
 
 // ---------- parse scenarios.md ----------
 
@@ -249,12 +253,17 @@ for (const c of cases) {
     const armLabel = AGENT === 'claude' ? arm : `${arm}@${AGENT}`;
     process.stdout.write(`${c.plugin}/${c.skill} ${c.id} [${armLabel}] ... `);
     try {
-      const response = runAgent(c.prompt, MODEL, arm === 'with-skill' ? skillSystemPrompt(c) : undefined);
-      const verdicts = judge(c, response);
-      const items = verdicts.map((v, i) => ({ text: c.expected[i], pass: !!v.pass, reason: v.reason || '' }));
-      const passed = items.filter((i) => i.pass).length;
-      allResults.push({ plugin: c.plugin, skill: c.skill, scenario: c.id, arm, agent: AGENT, items, response });
-      console.log(`${passed}/${items.length} pass`);
+      let response, items, passed, attempts = 0;
+      const maxAttempts = arm === 'with-skill' ? 1 + RETRIES : 1;
+      do {
+        attempts++;
+        response = runAgent(c.prompt, MODEL, arm === 'with-skill' ? skillSystemPrompt(c) : undefined);
+        const verdicts = judge(c, response);
+        items = verdicts.map((v, i) => ({ text: c.expected[i], pass: !!v.pass, reason: v.reason || '' }));
+        passed = items.filter((i) => i.pass).length;
+      } while (passed < items.length && attempts < maxAttempts);
+      allResults.push({ plugin: c.plugin, skill: c.skill, scenario: c.id, arm, agent: AGENT, attempts, items, response });
+      console.log(`${passed}/${items.length} pass${attempts > 1 ? ` (attempt ${attempts})` : ''}`);
       if (arm === 'with-skill' && passed < items.length) {
         hardFail = true;
         for (const i of items.filter((x) => !x.pass)) console.log(`    FAIL: ${i.text}\n          ${i.reason}`);

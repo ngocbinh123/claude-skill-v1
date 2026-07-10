@@ -189,6 +189,9 @@ visually verifiable:
 
 - Do NOT snapshot without the editor guard — `get_variables` silently reads
   whatever file is open.
+- Do NOT transform before fingerprinting the snapshot against config
+  `rules` (theme dims + consumer prefix) — a matching filename can still be
+  the wrong design-system version.
 - Do NOT guess config values or default paths when CLAUDE.md keys are
   missing — interview + offer to write the section.
 - Do NOT emit a partial or guessed value for a token whose `$ref` chain
