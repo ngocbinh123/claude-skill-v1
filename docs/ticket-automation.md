@@ -1,80 +1,192 @@
-# Ticket status automation
+# AI ticket pipeline — design spec
 
-Workflow: `.github/workflows/ticket-status-automation.yml`
-Prompts: `.github/prompts/ticket-clarify.md`, `.github/prompts/ticket-plan.md`
+Board: <https://github.com/users/ngocbinh123/projects/2>
+Status columns: `Backlog` → `Ready` → `In progress` → `In review` → `Done`
 
-When a ticket on the project board
-(<https://github.com/users/ngocbinh123/projects/2>) changes Status, an AI
-pass runs and comments on the issue:
+Hybrid architecture agreed on 2026-07-10. This document is the source of
+truth: it contains everything needed to rebuild the system on a new machine.
 
-| Transition          | What happens                                                                                                                                                                    |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `backlog → ready`   | AI judges whether the requirement is clear. **Clear** → posts a "✅ Requirement RECAP" comment (summary, scope, out of scope, acceptance criteria, risks) and labels the issue `requirement:clear`. **Not clear** → posts open questions + suggested next action and labels `requirement:needs-clarification`. |
-| `ready → develop`   | AI posts "🛠️ Implementation suggestions & test cases": recommended approach, alternatives, step checklist, test-case table, risks.                                              |
+> **Implementation status:** DESIGN. The current
+> `.github/workflows/ticket-status-automation.yml` still implements the older
+> CI-side AI design (GitHub Models). The components below replace it:
+> the CI workflow becomes mirror-only and all AI work moves to a local
+> dispatcher.
 
-## How detection works (and why it polls)
+## 1. Why hybrid (CI detects, local executes)
 
-GitHub Actions has **no trigger for Projects v2 field changes** — the
-`projects_v2_item` webhook is not exposed to repository workflows, and
-user-owned projects can't install webhooks at all. So the workflow:
+- GitHub Actions has **no trigger for Projects v2 Status changes** — the only
+  reliable detection is polling the board via GraphQL.
+- CI-side AI (Copilot / GitHub Models) sees only the ticket text. Local
+  execution runs Claude Code with the full personal skill set
+  (`~/.claude/skills`: `ck:brainstorm`, `ck:vibe`, `binh-gh-*`) **and the real
+  codebase**, which produces far better analysis and implementation.
+- CI keeps running when the Mac is off, so nothing is lost: state lives in
+  GitHub labels, and the local worker drains the backlog when it comes online.
 
-1. Runs on a schedule (every 15 minutes) and on manual dispatch.
-2. Reads all board items via the GraphQL API.
-3. Mirrors each issue's Status into a `status:<value>` label on the issue.
-4. A difference between the label (last seen) and the board (current) is a
-   transition. The label is updated first, so each transition fires **at most
-   once** even if the AI step fails.
+```
+CI cron (15 min, GitHub)          Local dispatcher (10 min, launchd, macOS)
+────────────────────────          ─────────────────────────────────────────
+poll board via GraphQL            evaluate conditions per ticket (labels)
+mirror Status → status:* label    claim → run Claude skill → mark result
+(nothing else — no AI, no rules)  worker pool, priority, kill-switch
+```
 
-Consequences to be aware of:
+## 2. Trigger conditions (state-based, not transition-based)
 
-- Up to ~15 minutes of delay between moving a card and the comment.
-- The first run only records a baseline label for every ticket — no comments.
-- If a ticket jumps two columns between polls (e.g. `backlog → develop`),
-  the intermediate transition is not seen and no rule matches.
-- Only issues in **this repository** are processed; items from other repos on
-  the same board are ignored.
-- Don't remove or hand-edit `status:*` labels — they are the workflow's memory.
+A handler runs when the ticket's *current state* matches. No transition
+history needed. `status:*` labels are the board mirror maintained by CI.
 
-## Required setup
+| Handler | Condition (ALL must hold) | Action |
+| --- | --- | --- |
+| **BRAINSTORM** (once) | `status:ready` AND no `planning`/`planned` AND no `agent-ignore` | claim with `planning` → `claude -p "/ck:brainstorm …"`: analyze + clarify requirement, is it implementable, suggest ideas → post analysis as issue comment → swap `planning` → `planned` |
+| **COOK** (once) | `status:in progress` AND no `cooking`/`cooked` AND no `agent-ignore` | claim with `cooking` → `claude -p "/ck:vibe <issue-url>"`: worktree → plan → TDD implement (tests must pass — hard gate) → push branch → create PR → **immediately** move board Status to `In review` (do not wait for CI green) + comment PR link → swap `cooking` → `cooked` |
+| **REVIEW-WATCH** (recurring until merged/closed) | `status:in review` AND `cooked` AND no `reviewing`/`agent-ignore` | see §3 |
 
-1. **`PROJECT_TOKEN` repository secret** — the default `GITHUB_TOKEN` cannot
-   read Projects v2. Create a PAT for `ngocbinh123`:
-   - Classic PAT: scopes `project` (read) + `repo`, or
-   - Fine-grained PAT: *Projects: read* (account) + *Issues: read/write* on
-     this repo.
+Notes:
 
-   Add it under *Settings → Secrets and variables → Actions →
-   `PROJECT_TOKEN`*.
-2. **GitHub Models access** — the AI steps use
-   [`actions/ai-inference`](https://github.com/actions/ai-inference) with the
-   built-in `GITHUB_TOKEN` (`models: read` permission). GitHub Models must be
-   enabled for the account/repo (Settings → Models). Copilot Chat itself is
-   not scriptable from Actions; GitHub Models is the supported equivalent.
-3. **Board Status options** must include `Backlog`, `Ready`, `Develop`
-   (case-insensitive). Different names or extra transitions? Edit
-   `TRANSITION_RULES` in the workflow `env` block, one rule per line:
+- Independent stages: a ticket dragged straight to `In progress` gets cooked
+  without a prior brainstorm (deliberate: the human decided it's clear enough).
+- A ticket created directly in `Ready` IS picked up (state-based check has no
+  "first sighting" gap).
+- **Re-run** = manually remove `planned` / `cooked`.
+- **Force-run** on any ticket = just ensure it sits in the right column
+  without the done-marker label.
+- **Skip forever** = add `agent-ignore` (§4).
 
-   ```text
-   backlog->ready=clarify
-   ready->develop=plan
-   ready->in progress=plan   # example: alternative column name
-   ```
+## 3. REVIEW-WATCH handler (cheap → expensive ladder)
 
-## Manual runs & testing
+Runs every dispatcher cycle for each eligible ticket:
 
-*Actions → ticket-status-automation → Run workflow* with:
+1. `gh pr view --json state,mergedAt` (plain bash, no tokens):
+   - **MERGED** → move board Status to `Done`, comment "merged in <PR>", stop
+     watching forever.
+   - **CLOSED without merge** → add `agent-ignore` + explanatory comment.
+   - **OPEN** → step 2.
+2. Anything NEW since last processed timestamp? (stored in a hidden marker
+   comment on the PR; still plain bash)
+   - new review comments, or CI turned red → step 3. Otherwise exit (0 tokens).
+3. Single `claude -p` session:
+   - Triage new comments by severity. **Fix only critical + high + CI
+     failures.** Medium/low → short reply "noted, deferred", no code.
+     Reviewers can force priority by writing `critical:` in a comment.
+   - Commit, push to the PR branch, reply to each addressed comment with the
+     fix commit SHA.
+   - **CI-fix limit: 3 attempts per session.** Still red after 3 → add
+     `agent-ignore` to the ticket + comment on both PR and ticket summarizing
+     the 3 attempts. Human fixes, then removes `agent-ignore` to resume.
 
-- `issue_number` + `action=clarify|plan` — runs that handler on one issue
-  directly, skipping the board scan (also works without `PROJECT_TOKEN`).
-- no inputs — forces an immediate board scan.
+## 4. `agent-ignore` — global kill-switch
 
-To re-run clarification after answering questions, move the ticket back to
-`backlog` and then to `ready` again (the label mirror follows both moves).
+- First check of every handler: label present → the agent does **nothing**
+  for that ticket (no brainstorm/cook/review-watch, not even the merged
+  check). Only CI's `status:*` mirroring continues (harmless bookkeeping).
+- Humans add/remove it freely to take over any ticket.
+- The only automatic writer: CI-fix limit above. Every "needs a human" state
+  is uniformly `agent-ignore` + an explanatory comment (no separate
+  `*-failed` label taxonomy).
+- Stale-claim recovery: a ticket stuck in `planning`/`cooking`/`reviewing`
+  for > 2 h (crash mid-run) → dispatcher adds `agent-ignore` + comment
+  "run interrupted, remove agent-ignore to retry". Never auto-requeue (a
+  half-pushed branch must not be cooked twice blindly).
 
-## Labels used
+## 5. Scheduling, concurrency, priority
 
-| Label                             | Meaning                                     |
-| --------------------------------- | ------------------------------------------- |
-| `status:<value>`                  | Last board Status seen by the poller        |
-| `requirement:clear`               | Clarification verdict: ready to plan        |
-| `requirement:needs-clarification` | Open questions posted; needs product input  |
+Dispatcher config (env vars or a small config file next to the script):
+
+```bash
+MAX_WORKERS=3        # parallel claude -p sessions (2–3 recommended)
+MAX_COOK_WORKERS=1   # cook cap — keep 1: parallel test suites starve CPU
+                     # and cause flaky-timeout TDD failures; raise only after
+                     # observing machine load
+POLL_INTERVAL=600    # launchd StartInterval, seconds
+STALE_CLAIM_HOURS=2
+```
+
+Per cycle:
+
+1. Global **lock file**: if the previous cycle is still running, exit.
+2. Cheap review checks (§3 steps 1–2) run first, sequentially, outside the
+   worker pool — seconds for a dozen PRs.
+3. Build ONE priority queue of tickets needing a Claude session:
+   - by Status: **In review → In progress → Ready**
+     (value lies in pushing tickets over the finish line, not starting more);
+   - within a Status: board `Priority` field if present, else FIFO (lowest
+     issue number first).
+4. Fill the pool (`MAX_WORKERS` slots, cook capped separately). Claim labels
+   (`planning`/`cooking`/`reviewing`) are swapped in **before** a session
+   starts, so workers never collide and overlapping cycles never double-run.
+5. Leftovers stay queued by their labels — picked up next cycle.
+
+Throughput reality: ~1 cook/hour max. Dragging 10 tickets into
+`In progress` occupies the machine for a day — intended; the pipeline
+self-throttles to human review speed.
+
+## 6. Label reference
+
+| Label | Writer | Meaning |
+| --- | --- | --- |
+| `status:<value>` | CI | Board Status mirror (do not hand-edit) |
+| `planning` / `planned` | dispatcher | Brainstorm running / done |
+| `cooking` / `cooked` | dispatcher | Cook running / done (PR exists) |
+| `reviewing` | dispatcher | Review-fix session in flight |
+| `agent-ignore` | human, or agent on give-up | Kill-switch: agent skips this ticket entirely |
+
+Reading a ticket's labels answers "has it been processed, and where is it in
+the pipeline" at a glance; board views can filter on them.
+
+## 7. Components to build
+
+| Component | Path | Job |
+| --- | --- | --- |
+| CI workflow (rewrite) | `.github/workflows/ticket-status-automation.yml` | schedule 15 min: GraphQL board scan → mirror Status to `status:*` labels. Nothing else. Delete the AI jobs and `.github/prompts/ticket-*.md`. |
+| Dispatcher | `tools/ai-ticket-dispatcher.sh` | everything in §2–§5; `--dry-run` flag prints planned actions without executing |
+| launchd agent | `~/Library/LaunchAgents/com.ngocbinh123.ai-ticket-dispatcher.plist` | run dispatcher every `POLL_INTERVAL`; logs to `~/Library/Logs/ai-ticket-dispatcher.log` |
+
+Dispatcher skill invocations (labels/comments via `gh`; board moves via
+`gh api graphql` mutation `updateProjectV2ItemFieldValue`):
+
+```bash
+# brainstorm
+claude -p "/ck:brainstorm 'Analyze and clarify requirement of issue #<N> (<url>):
+is there enough info to implement? Suggest ideas/approaches.
+Recap the full brainstorm and post it as a comment on the ticket.'"
+
+# cook (vibe pipeline: worktree → plan → TDD cook → ship PR → CI watch)
+claude -p "/ck:vibe <issue-url>"
+```
+
+Headless permission note: `claude -p` needs an explicit allowlist covering
+`gh`, `git`, and the test runner — never blanket `bypassPermissions`. Never
+push to `master`; branches + PRs only.
+
+## 8. Setup checklist (repeat on any new machine)
+
+One-time, GitHub side (survives machine changes):
+
+1. `PROJECT_TOKEN` repo secret — PAT for `ngocbinh123`: classic scopes
+   `project` + `repo`, or fine-grained *Projects: read* + *Issues:
+   read/write*. (Default `GITHUB_TOKEN` cannot read Projects v2.)
+2. Merge this branch to `master` — scheduled workflows only run from the
+   default branch.
+3. **Before first activation**, pre-label tickets already sitting in active
+   columns that must NOT be processed: add `cooked` to tickets already in
+   `In progress` (e.g. #3, #6, #8), `planned` to tickets in `Ready` you don't
+   want brainstormed. State-based triggers WILL pick up everything eligible
+   on the first sweep.
+
+Per machine:
+
+4. Prereqs: `gh auth login` (repo + project scopes), `claude` CLI logged in,
+   personal skills present in `~/.claude/skills` (`ck:*`, `binh-gh-*`).
+5. Copy `tools/ai-ticket-dispatcher.sh`, install the launchd plist
+   (`launchctl load ~/Library/LaunchAgents/com.ngocbinh123.ai-ticket-dispatcher.plist`).
+6. First run with `--dry-run`: verify the planned actions, then enable.
+
+## 9. Operating notes
+
+- Worst-case latency from card drag to AI start: ~25 min (15 CI + 10 local).
+- Mac off → tickets wait in queue (labels persist); drained on wake.
+- Forensics order: ticket labels → ticket/PR comments → dispatcher log.
+- `In review → Done` is automated on merge; merging the PR *is* the human
+  approval gate. Everything before merge that needs a human is surfaced as
+  `agent-ignore` + comment.
