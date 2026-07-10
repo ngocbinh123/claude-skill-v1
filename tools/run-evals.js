@@ -16,10 +16,20 @@
 //   node tools/run-evals.js --plugin bi-git --skill bi-pr-workflow --scenario S2
 //   node tools/run-evals.js --ablation                # also run no-skill baseline
 //   node tools/run-evals.js --model sonnet --judge-model haiku
+//   node tools/run-evals.js --agent cursor            # run scenarios through cursor-agent
+//
+// --agent cursor drives the same scenarios through Cursor's headless CLI
+// (`cursor-agent -p`, needs `cursor-agent login` first). The skill is
+// injected as a prompt preamble (cursor-agent has no system-prompt flag)
+// and the run is confined to an empty temp dir with an advice-mode
+// instruction, because `cursor-agent -p` can otherwise execute tools.
+// The judge always runs on `claude` — it is grading infra, not the agent
+// under test.
 //
 // Exit codes: 0 all with-skill items pass; 1 any failure; 2 setup error.
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
@@ -37,7 +47,13 @@ const has = (name) => args.includes(`--${name}`);
 const FILTER_PLUGIN = opt('plugin');
 const FILTER_SKILL = opt('skill');
 const FILTER_SCENARIO = opt('scenario');
-const MODEL = opt('model', 'sonnet');
+const AGENT = opt('agent', 'claude');
+if (!['claude', 'cursor'].includes(AGENT)) {
+  console.error(`Unknown --agent "${AGENT}" (expected claude | cursor)`);
+  process.exit(2);
+}
+// cursor-agent uses its own model names (sonnet-4, gpt-5, ...)
+const MODEL = opt('model', AGENT === 'cursor' ? 'sonnet-4' : 'sonnet');
 const JUDGE_MODEL = opt('judge-model', 'haiku');
 const ABLATION = has('ablation');
 const DRY_RUN = has('dry-run');
@@ -95,7 +111,7 @@ function collectCases() {
   return cases;
 }
 
-// ---------- claude invocations ----------
+// ---------- agent invocations ----------
 
 function runClaude(promptText, model, systemAppend) {
   const cliArgs = ['-p', promptText, '--model', model, '--tools', ''];
@@ -105,6 +121,28 @@ function runClaude(promptText, model, systemAppend) {
   if (res.status !== 0) throw new Error(`claude exited ${res.status}: ${(res.stderr || '').slice(0, 400)}`);
   return (res.stdout || '').trim();
 }
+
+// Empty temp cwd so cursor-agent (whose -p mode CAN run tools) has nothing
+// to touch; advice-mode instruction keeps it from trying.
+let cursorCwd;
+function runCursor(promptText, model, systemAppend) {
+  if (!cursorCwd) cursorCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-eval-cursor-'));
+  const ADVICE =
+    'Advice mode: do NOT run any tools or commands and do NOT create or modify any files. ' +
+    'Reply only with the concrete approach you would take, step by step.';
+  // No system-prompt flag in cursor-agent -> inject skill as a prompt preamble.
+  const fullPrompt = systemAppend
+    ? `${ADVICE}\n\n${systemAppend}\n\n--- USER REQUEST ---\n${promptText}`
+    : `${ADVICE}\n\n${promptText}`;
+  const res = spawnSync('cursor-agent', ['-p', fullPrompt, '--output-format', 'text', '--model', model], {
+    encoding: 'utf8', timeout: TIMEOUT_MS, cwd: cursorCwd,
+  });
+  if (res.error) throw new Error(`cursor-agent CLI failed: ${res.error.message}`);
+  if (res.status !== 0) throw new Error(`cursor-agent exited ${res.status} (run \`cursor-agent login\`?): ${(res.stderr || '').slice(0, 400)}`);
+  return (res.stdout || '').trim();
+}
+
+const runAgent = AGENT === 'cursor' ? runCursor : runClaude;
 
 function skillSystemPrompt(caseDef) {
   const body = fs.readFileSync(caseDef.skillMd, 'utf8').replace(/^---[\s\S]*?---\n/, '');
@@ -149,7 +187,8 @@ function writeJUnit(allResults, file) {
     let failures = 0;
     for (const row of rows) {
       for (const item of row.items) {
-        const name = `${row.scenario} [${row.arm}] ${item.text}`;
+        const armLabel = row.agent && row.agent !== 'claude' ? `${row.arm}@${row.agent}` : row.arm;
+        const name = `${row.scenario} [${armLabel}] ${item.text}`;
         if (item.pass) {
           cases.push(`    <testcase classname="${xmlEscape(suite)}" name="${xmlEscape(name)}"/>`);
         } else {
@@ -178,7 +217,7 @@ if (!cases.length) {
   process.exit(2);
 }
 
-console.log(`${cases.length} scenario(s) matched` + (DRY_RUN ? ' (dry run)' : ` — model=${MODEL}, judge=${JUDGE_MODEL}, ablation=${ABLATION}`));
+console.log(`${cases.length} scenario(s) matched` + (DRY_RUN ? ' (dry run)' : ` — agent=${AGENT}, model=${MODEL}, judge=${JUDGE_MODEL}, ablation=${ABLATION}`));
 if (DRY_RUN) {
   for (const c of cases) console.log(`  ${c.plugin}/${c.skill} ${c.id}: ${c.title} (${c.expected.length} expected behaviors)`);
   process.exit(0);
@@ -194,13 +233,14 @@ let hardFail = false;
 for (const c of cases) {
   const arms = ABLATION ? ['baseline', 'with-skill'] : ['with-skill'];
   for (const arm of arms) {
-    process.stdout.write(`${c.plugin}/${c.skill} ${c.id} [${arm}] ... `);
+    const armLabel = AGENT === 'claude' ? arm : `${arm}@${AGENT}`;
+    process.stdout.write(`${c.plugin}/${c.skill} ${c.id} [${armLabel}] ... `);
     try {
-      const response = runClaude(c.prompt, MODEL, arm === 'with-skill' ? skillSystemPrompt(c) : undefined);
+      const response = runAgent(c.prompt, MODEL, arm === 'with-skill' ? skillSystemPrompt(c) : undefined);
       const verdicts = judge(c, response);
       const items = verdicts.map((v, i) => ({ text: c.expected[i], pass: !!v.pass, reason: v.reason || '' }));
       const passed = items.filter((i) => i.pass).length;
-      allResults.push({ plugin: c.plugin, skill: c.skill, scenario: c.id, arm, items, response });
+      allResults.push({ plugin: c.plugin, skill: c.skill, scenario: c.id, arm, agent: AGENT, items, response });
       console.log(`${passed}/${items.length} pass`);
       if (arm === 'with-skill' && passed < items.length) {
         hardFail = true;
@@ -211,7 +251,7 @@ for (const c of cases) {
       }
     } catch (err) {
       hardFail = true;
-      allResults.push({ plugin: c.plugin, skill: c.skill, scenario: c.id, arm, items: c.expected.map((text) => ({ text, pass: false, reason: `run error: ${err.message}` })) });
+      allResults.push({ plugin: c.plugin, skill: c.skill, scenario: c.id, arm, agent: AGENT, items: c.expected.map((text) => ({ text, pass: false, reason: `run error: ${err.message}` })) });
       console.log(`ERROR: ${err.message}`);
     }
   }

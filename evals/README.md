@@ -53,7 +53,19 @@ node tools/run-evals.js --dry-run                    # list parsed cases (no API
 node tools/run-evals.js --plugin bi-git              # gate one plugin
 node tools/run-evals.js --plugin bi-react-native --skill bi-rn-debugging \
   --scenario S1 --ablation                           # RED+GREEN for one scenario
+node tools/run-evals.js --plugin bi-pencil --agent cursor \
+                                                     # same scenarios through Cursor
 ```
+
+`--agent cursor` drives the identical scenarios through Cursor's headless
+CLI (`cursor-agent -p`; run `cursor-agent login` once first). Because
+cursor-agent has no system-prompt flag and its print mode can execute
+tools, the runner injects SKILL.md as a prompt preamble and confines the
+run to an empty temp dir with an advice-mode instruction. The judge stays
+on `claude` either way. JUnit test names carry an `@cursor` suffix so both
+agents' results can live side by side. This checks behavior compliance in
+Cursor's harness — rule *attachment* (does `.cursor/rules` trigger at the
+right moment) still needs a live Cursor session.
 
 CI runs this on every PR touching `plugins/**` or `evals/**`
 (`.github/workflows/skill-evals.yml`, needs the `ANTHROPIC_API_KEY` secret).
