@@ -52,6 +52,8 @@ npx skills add ngocbinh123/claude-skill-v1
 | `bi-ios` | `bi-ios-build-errors` | Xcode failure triage: signing, CocoaPods/SPM, compile, link, environment |
 | `bi-pencil` | `bi-pencil-design` | Agent-driven UI design in [Pencil](https://pencil.dev) via its MCP tools: tokens-first, components-first, screenshot-verified |
 | | `bi-pencil-mobile-screens` | Mobile screens in Pencil: device frames, safe areas, touch targets, handoff to RN/SwiftUI/Compose |
+| | `bi-pencil-token-to-code` | One-way design-token sync from a `.pen` design system into code token files: editor guard with auto-open, `$ref` resolution, TDD gate, data-driven showcases |
+| | `bi-pencil-token-to-theme` | Build/update the app theme from generated token code: tokens-hash change detection, spec-driven tests-first phases, zero-hex guard (no Pencil MCP, CI-safe) |
 
 **Planned:** `bi-react` — React web skills (component architecture,
 performance, debugging) to complete the web side of the library.
