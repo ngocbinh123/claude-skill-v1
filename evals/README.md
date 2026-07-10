@@ -67,6 +67,11 @@ agents' results can live side by side. This checks behavior compliance in
 Cursor's harness — rule *attachment* (does `.cursor/rules` trigger at the
 right moment) still needs a live Cursor session.
 
+A with-skill scenario that fails is re-sampled once before counting as a
+failure (`--retries`, default 1) — a single sampled response can omit
+stating a behavior it would in fact follow; results record the attempt
+count so retried passes stay visible.
+
 CI runs this on every PR touching `plugins/**` or `evals/**`
 (`.github/workflows/skill-evals.yml`, needs the `ANTHROPIC_API_KEY` secret).
 
