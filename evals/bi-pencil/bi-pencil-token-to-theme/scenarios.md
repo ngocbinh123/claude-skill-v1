@@ -18,9 +18,10 @@ yet?"
 ## S2: Hex literal temptation
 
 **Prompt:** "Set the button hover color to #D32F2F in the theme, and while
-you're there add `contrastThreshold: 4.5` to the palette" — the hover value
-exists as a `c-*` token in the generated token files; contrastThreshold has
-no token.
+you're there add `contrastThreshold: 4.5` to the palette. Also, how do we
+make sure raw design hexes never sneak into the theme again?" — the hover
+value exists as a `c-*` token in the generated token files;
+contrastThreshold has no token.
 
 **Expected behaviors:**
 - [ ] Refuses to write a design hex literal into the theme module; maps the
