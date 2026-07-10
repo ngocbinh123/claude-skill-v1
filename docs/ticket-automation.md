@@ -39,7 +39,7 @@ history needed. `status:*` labels are the board mirror maintained by CI.
 | Handler | Condition (ALL must hold) | Action |
 | --- | --- | --- |
 | **BRAINSTORM** (once) | `status:ready` AND no `planning`/`planned` AND no `agent-ignore` | claim with `planning` → `claude -p "/ck:brainstorm …"`: structured analysis (Goal / Scope / Out of scope / Verification TDD / Ideas / Open questions — full prompt in §7) → post the FULL analysis as ONE issue comment marked `<!-- ai-brainstorm -->` → swap `planning` → `planned` only after the comment is verified to exist |
-| **COOK** (once) | `status:in progress` AND no `cooking`/`cooked` AND no `agent-ignore` | claim with `cooking` → `claude -p "/ck:vibe <issue-url>"` which FIRST reads the `<!-- ai-brainstorm -->` comment as the requirement contract (scope, out-of-scope, TDD test list — full prompt in §7): worktree → plan → TDD implement (tests must pass — hard gate) → push branch → create PR → **immediately** move board Status to `In review` (do not wait for CI green) + comment PR link → swap `cooking` → `cooked` only after the PR is verified to exist |
+| **COOK** (once) | `status:in progress` AND no `cooking`/`cooked` AND no `agent-ignore` | claim with `cooking` → `claude -p "/ck:vibe <issue-url>"` which FIRST reads the `<!-- ai-brainstorm -->` comment as the requirement contract (scope, out-of-scope, TDD test list — full prompt in §7): worktree → plan → **comment plan recap** (`<!-- ai-cook-plan -->`: plan file path on the branch + phase recap) → TDD implement (tests must pass — hard gate) → **comment TDD result** (`<!-- ai-cook-tdd -->`: tests written, pass/fail counts, run command) → push branch → create PR → **immediately** move board Status to `In review` (do not wait for CI green) → **comment final recap** (`<!-- ai-cook-recap -->`: PR link, branch, status summary — mandatory even on partial failure) → swap `cooking` → `cooked` only after the PR is verified to exist |
 | **REVIEW-WATCH** (session once; merged/closed check always) | `status:in review` AND `cooked` AND no `agent-ignore` | always run cheap merged/closed check (§3.1); if no `reviewing`/`reviewed`, claim with `reviewing` → review-fix session (§3) → swap `reviewing` → `reviewed` |
 
 Notes:
@@ -201,7 +201,21 @@ the tests from the Verification (TDD) section first and make them the
 pass/fail gate, and prefer the recommended approach from Ideas unless the
 codebase contradicts it (if you deviate, say why in the PR description).
 If no brainstorm comment exists, proceed from the issue body alone and
-note that in the PR description."
+note that in the PR description.
+
+Post progress comments on issue #<N> at each milestone (each ONE comment,
+prefixed with its marker line):
+1. After the plan is written — marker <!-- ai-cook-plan -->: the plan file
+   path as it will exist on the pushed branch (plans/...), plus a recap of
+   the phases and the TDD test list adopted from the brainstorm contract.
+2. After the TDD implement step — marker <!-- ai-cook-tdd -->: tests
+   written (names/levels), pass/fail counts, and the exact command to
+   re-run them.
+3. After the PR is created — marker <!-- ai-cook-recap -->: PR link,
+   branch name, and a status recap (what was done vs the Scope, anything
+   deferred or deviated). This recap comment is MANDATORY: post it even
+   if an earlier step failed and no PR exists — then it states where the
+   run stopped and why."
 
 # review-watch (dispatcher pre-computes the <...> values in bash, step §3.2)
 claude -p "PR <pr-url> for issue #<N>. New review comments since <last>:
@@ -227,7 +241,7 @@ Success criteria the dispatcher checks before swapping done-markers
 - brainstorm: a new issue comment containing `<!-- ai-brainstorm -->`
   exists → swap `planning` → `planned`. Otherwise leave `planning` for
   stale-claim recovery (§4).
-- cook: an open PR referencing the issue, created after the dispatcher added `cooking`, exists → swap `cooking` → `cooked`.
+- cook: an open PR referencing the issue, created after the dispatcher added `cooking`, exists AND a new issue comment containing `<!-- ai-cook-recap -->` exists → swap `cooking` → `cooked`. The plan/TDD progress comments (`<!-- ai-cook-plan -->`, `<!-- ai-cook-tdd -->`) are best-effort and NOT part of the gate — only the recap is mandatory.
 
 Headless permission note: `claude -p` needs an explicit allowlist covering
 `gh`, `git`, and the test runner — never blanket `bypassPermissions`. Never
