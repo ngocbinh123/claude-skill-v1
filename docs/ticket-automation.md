@@ -40,7 +40,7 @@ history needed. `status:*` labels are the board mirror maintained by CI.
 | --- | --- | --- |
 | **BRAINSTORM** (once) | `status:ready` AND no `planning`/`planned` AND no `agent-ignore` | claim with `planning` → `claude -p "/ck:brainstorm …"`: structured analysis (Goal / Scope / Out of scope / Verification TDD / Ideas / Open questions — full prompt in §7) → post the FULL analysis as ONE issue comment marked `<!-- ai-brainstorm -->` → swap `planning` → `planned` only after the comment is verified to exist |
 | **COOK** (once) | `status:in progress` AND no `cooking`/`cooked` AND no `agent-ignore` | claim with `cooking` → `claude -p "/ck:vibe <issue-url>"` which FIRST reads the `<!-- ai-brainstorm -->` comment as the requirement contract (scope, out-of-scope, TDD test list — full prompt in §7): worktree → plan → TDD implement (tests must pass — hard gate) → push branch → create PR → **immediately** move board Status to `In review` (do not wait for CI green) + comment PR link → swap `cooking` → `cooked` only after the PR is verified to exist |
-| **REVIEW-WATCH** (once, same pattern as COOK) | `status:in review` AND `cooked` AND no `reviewing`/`reviewed` AND no `agent-ignore` | claim with `reviewing` → review-fix session (§3) → swap `reviewing` → `reviewed`. Exception: the cheap merged/closed check (§3 step 1, plain bash) keeps running even with `reviewed` present, so merge → `Done` stays automated. |
+| **REVIEW-WATCH** (session once; merged/closed check always) | `status:in review` AND `cooked` AND no `agent-ignore` | always run cheap merged/closed check (§3.1); if no `reviewing`/`reviewed`, claim with `reviewing` → review-fix session (§3) → swap `reviewing` → `reviewed` |
 
 Notes:
 
