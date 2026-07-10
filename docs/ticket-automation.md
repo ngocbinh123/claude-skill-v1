@@ -38,8 +38,8 @@ history needed. `status:*` labels are the board mirror maintained by CI.
 
 | Handler | Condition (ALL must hold) | Action |
 | --- | --- | --- |
-| **BRAINSTORM** (once) | `status:ready` AND no `planning`/`planned` AND no `agent-ignore` | claim with `planning` → `claude -p "/ck:brainstorm …"`: analyze + clarify requirement, is it implementable, suggest ideas → post analysis as issue comment → swap `planning` → `planned` |
-| **COOK** (once) | `status:in progress` AND no `cooking`/`cooked` AND no `agent-ignore` | claim with `cooking` → `claude -p "/ck:vibe <issue-url>"`: worktree → plan → TDD implement (tests must pass — hard gate) → push branch → create PR → **immediately** move board Status to `In review` (do not wait for CI green) + comment PR link → swap `cooking` → `cooked` |
+| **BRAINSTORM** (once) | `status:ready` AND no `planning`/`planned` AND no `agent-ignore` | claim with `planning` → `claude -p "/ck:brainstorm …"`: structured analysis (Goal / Scope / Out of scope / Verification TDD / Ideas / Open questions — full prompt in §7) → post the FULL analysis as ONE issue comment marked `<!-- ai-brainstorm -->` → swap `planning` → `planned` only after the comment is verified to exist |
+| **COOK** (once) | `status:in progress` AND no `cooking`/`cooked` AND no `agent-ignore` | claim with `cooking` → `claude -p "/ck:vibe <issue-url>"` which FIRST reads the `<!-- ai-brainstorm -->` comment as the requirement contract (scope, out-of-scope, TDD test list — full prompt in §7): worktree → plan → TDD implement (tests must pass — hard gate) → push branch → create PR → **immediately** move board Status to `In review` (do not wait for CI green) + comment PR link → swap `cooking` → `cooked` only after the PR is verified to exist |
 | **REVIEW-WATCH** (recurring until merged/closed) | `status:in review` AND `cooked` AND no `reviewing`/`agent-ignore` | see §3 |
 
 Notes:
@@ -147,13 +147,53 @@ Dispatcher skill invocations (labels/comments via `gh`; board moves via
 
 ```bash
 # brainstorm
-claude -p "/ck:brainstorm 'Analyze and clarify requirement of issue #<N> (<url>):
-is there enough info to implement? Suggest ideas/approaches.
-Recap the full brainstorm and post it as a comment on the ticket.'"
+claude -p "/ck:brainstorm 'Analyze and clarify the requirement of issue #<N> (<url>).
+Produce a structured analysis with EXACTLY these sections:
+
+## Goal
+What outcome the ticket wants and why (one paragraph, user-visible value).
+
+## Scope
+Concrete list of what WILL be done: files/modules touched, behaviors added
+or changed.
+
+## Out of scope
+Explicit list of what will NOT be done, including tempting adjacent work
+to defer. If a scope decision is ambiguous, state the assumption made.
+
+## Verification (TDD)
+The test list that proves the work is done: for each scope item, the
+test(s) to write FIRST (name, level unit/integration, what it asserts),
+plus how to run them. These tests become the hard gate for the cook stage.
+
+## Ideas / solution approaches
+2–3 candidate approaches with trade-offs; mark the recommended one and why.
+
+## Open questions
+Anything blocking implementation that needs a human answer (empty if none).
+
+Post the FULL analysis (all sections above, not a summary) as ONE comment
+on issue #<N>, prefixed with the marker line <!-- ai-brainstorm -->.'"
 
 # cook (vibe pipeline: worktree → plan → TDD cook → ship PR → CI watch)
-claude -p "/ck:vibe <issue-url>"
+claude -p "/ck:vibe <issue-url>
+Before planning, read the issue comments and locate the latest comment
+marked <!-- ai-brainstorm -->. Treat it as the requirement contract:
+implement the Goal within Scope, do NOT touch Out-of-scope items, write
+the tests from the Verification (TDD) section first and make them the
+pass/fail gate, and prefer the recommended approach from Ideas unless the
+codebase contradicts it (if you deviate, say why in the PR description).
+If no brainstorm comment exists, proceed from the issue body alone and
+note that in the PR description."
 ```
+
+Success criteria the dispatcher checks before swapping done-markers
+(exit code 0 alone is NOT success):
+
+- brainstorm: a new issue comment containing `<!-- ai-brainstorm -->`
+  exists → swap `planning` → `planned`. Otherwise leave `planning` for
+  stale-claim recovery (§4).
+- cook: an open PR referencing the issue exists → swap `cooking` → `cooked`.
 
 Headless permission note: `claude -p` needs an explicit allowlist covering
 `gh`, `git`, and the test runner — never blanket `bypassPermissions`. Never
