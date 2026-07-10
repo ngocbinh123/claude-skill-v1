@@ -40,7 +40,7 @@ history needed. `status:*` labels are the board mirror maintained by CI.
 | --- | --- | --- |
 | **BRAINSTORM** (once) | `status:ready` AND no `planning`/`planned` AND no `agent-ignore` | claim with `planning` → `claude -p "/ck:brainstorm …"`: structured analysis (Goal / Scope / Out of scope / Verification TDD / Ideas / Open questions — full prompt in §7) → post the FULL analysis as ONE issue comment marked `<!-- ai-brainstorm -->` → swap `planning` → `planned` only after the comment is verified to exist |
 | **COOK** (once) | `status:in progress` AND no `cooking`/`cooked` AND no `agent-ignore` | claim with `cooking` → `claude -p "/ck:vibe <issue-url>"` which FIRST reads the `<!-- ai-brainstorm -->` comment as the requirement contract (scope, out-of-scope, TDD test list — full prompt in §7): worktree → plan → TDD implement (tests must pass — hard gate) → push branch → create PR → **immediately** move board Status to `In review` (do not wait for CI green) + comment PR link → swap `cooking` → `cooked` only after the PR is verified to exist |
-| **REVIEW-WATCH** (recurring until merged/closed) | `status:in review` AND `cooked` AND no `reviewing`/`agent-ignore` | see §3 |
+| **REVIEW-WATCH** (once, same pattern as COOK) | `status:in review` AND `cooked` AND no `reviewing`/`reviewed` AND no `agent-ignore` | claim with `reviewing` → review-fix session (§3) → swap `reviewing` → `reviewed`. Exception: the cheap merged/closed check (§3 step 1, plain bash) keeps running even with `reviewed` present, so merge → `Done` stays automated. |
 
 Notes:
 
@@ -48,14 +48,18 @@ Notes:
   without a prior brainstorm (deliberate: the human decided it's clear enough).
 - A ticket created directly in `Ready` IS picked up (state-based check has no
   "first sighting" gap).
-- **Re-run** = manually remove `planned` / `cooked`.
+- **Re-run** = manually remove `planned` / `cooked` / `reviewed`.
+  Removing `reviewed` is also how a new round of review feedback gets
+  processed — the agent does NOT auto-resume on new comments.
 - **Force-run** on any ticket = just ensure it sits in the right column
   without the done-marker label.
 - **Skip forever** = add `agent-ignore` (§4).
 
 ## 3. REVIEW-WATCH handler (cheap → expensive ladder)
 
-Runs every dispatcher cycle for each eligible ticket:
+One-shot like COOK: runs once, marks `reviewed`, then ignores the ticket
+until a human removes `reviewed`. Only step 1 (merged/closed, plain bash)
+runs every cycle regardless of `reviewed`:
 
 1. `gh pr view --json state,mergedAt` (plain bash, no tokens):
    - **MERGED** → move board Status to `Done`, comment "merged in <PR>", stop
@@ -81,10 +85,12 @@ Runs every dispatcher cycle for each eligible ticket:
      `agent-ignore` to the ticket + comment on both PR and ticket summarizing
      the 3 attempts. Human fixes, then removes `agent-ignore` to resume.
 4. After the session (success or give-up): update the marker comment to the
-   current time, then **remove `reviewing`**. `reviewing` lives only for the
-   duration of one session — there is no `reviewed` done-marker because the
-   handler recurs until merge/close. A `reviewing` label older than
-   `STALE_CLAIM_HOURS` means a crashed session → stale-claim recovery (§4).
+   current time, then **swap `reviewing` → `reviewed`** (on give-up,
+   `agent-ignore` is added as well). New review comments arriving after
+   `reviewed` are NOT auto-processed — a human removes `reviewed` to run
+   another session; the timestamp marker then scopes it to what's new.
+   A `reviewing` label older than `STALE_CLAIM_HOURS` means a crashed
+   session → stale-claim recovery (§4).
 
 ## 4. `agent-ignore` — global kill-switch
 
@@ -139,7 +145,7 @@ self-throttles to human review speed.
 | `status:<value>` | CI | Board Status mirror (do not hand-edit) |
 | `planning` / `planned` | dispatcher | Brainstorm running / done |
 | `cooking` / `cooked` | dispatcher | Cook running / done (PR exists) |
-| `reviewing` | dispatcher | Review-fix session in flight; added at session start, removed at session end (§3.4) — no `reviewed` done-marker, the handler recurs until merge/close |
+| `reviewing` / `reviewed` | dispatcher | Review-fix session running / done. Remove `reviewed` to process a new round of feedback (§3.4). Merged/closed check ignores these labels. |
 | `agent-ignore` | human, or agent on give-up | Kill-switch: agent skips this ticket entirely |
 
 Reading a ticket's labels answers "has it been processed, and where is it in
