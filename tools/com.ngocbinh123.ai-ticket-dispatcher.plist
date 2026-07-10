@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent for the AI ticket dispatcher (docs/ticket-automation.md §7).
+  Install:  cp tools/com.ngocbinh123.ai-ticket-dispatcher.plist ~/Library/LaunchAgents/
+            launchctl load ~/Library/LaunchAgents/com.ngocbinh123.ai-ticket-dispatcher.plist
+  Disable:  launchctl unload ~/Library/LaunchAgents/com.ngocbinh123.ai-ticket-dispatcher.plist
+  StartInterval mirrors POLL_INTERVAL=600 (spec §5).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ngocbinh123.ai-ticket-dispatcher</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/binhnguyen/Documents/my-project/claude-skill-v1/tools/ai-ticket-dispatcher.sh</string>
+  </array>
+
+  <key>StartInterval</key>
+  <integer>600</integer>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- gh (homebrew) + claude (npm global) must be on PATH for launchd -->
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/Users/binhnguyen/.npm-global/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/binhnguyen/Library/Logs/ai-ticket-dispatcher.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/binhnguyen/Library/Logs/ai-ticket-dispatcher.log</string>
+</dict>
+</plist>
