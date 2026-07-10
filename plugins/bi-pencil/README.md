@@ -8,6 +8,8 @@ with this marketplace's React Native / Android / iOS toolkits.
 |---|---|---|
 | `bi-pencil-design` | designing UI in Pencil, .pen files, mockups | The opening sequence (state → guidelines → components → variables), tokens-first and components-first design, screenshot verification, design-to-code handoff |
 | `bi-pencil-mobile-screens` | mobile/app screens in Pencil, implementing Pencil designs in RN/SwiftUI/Compose | Device frames, safe areas, touch targets, theme axes, state variants, layout-tool-based (not screenshot-based) handoff |
+| `bi-pencil-token-to-code` | "sync design token", "pencil to code", "token drift check" | One-way `.pen` → code token sync: CLAUDE.md config discovery, editor guard with auto-open, `$ref` resolution, TDD gate, data-driven showcases |
+| `bi-pencil-token-to-theme` | "build theme", "token to theme", "rebuild theme from tokens" | Token code → app theme: tokens-hash change detection, spec-driven tests-first phases, zero-hex guard; no Pencil MCP (CI-safe) |
 
 ## Prerequisites
 

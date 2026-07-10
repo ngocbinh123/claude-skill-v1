@@ -46,7 +46,7 @@
       "name": "bi-pencil",
       "source": "./plugins/bi-pencil",
       "description": "Pencil (pencil.dev) design skills: agent-driven UI design via Pencil's MCP tools, with mobile-first screen design and design-to-code handoff",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "license": "MIT",
       "category": "design"
     }
