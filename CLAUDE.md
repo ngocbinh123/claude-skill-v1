@@ -28,8 +28,9 @@ goals, architecture + decision log, versioning, governance, roadmap.
   "Use when ..." trigger phrase. Lint: `node tools/lint-frontmatter.js`.
 - SKILL.md body ≤ 500 lines; depth goes to `references/`.
 - Version bump: edit plugin.json only, then run `node tools/sync-versions.js`.
-- `main` is the stable release channel (community marketplace tracks its
-  HEAD). Develop on branches; merge only release-ready work.
+- The default branch (`master` in this repo) is the stable release channel
+  (community marketplace tracks its HEAD). Develop on branches; merge only
+  release-ready work.
 - Style guide: `docs/authoring.md`. Template: `docs/skill-template/SKILL.md`.
 - Full rule set + quality gates: `docs/governance.md`. Version/release
   policy: `docs/versioning.md`.
