@@ -59,7 +59,10 @@ Breaking change: append `!` after type/scope (`feat(api)!: ...`) and add a
 4. Pick `scope` from the project's existing convention — check
    `git log --oneline -20` first and mirror what the repo already uses.
 5. Write the message. If a body is needed, explain the reason for the change.
-6. Verify nothing unintended is staged (`git diff --cached --stat`).
+6. When proposing each message, state that the subject passes the checks:
+   imperative mood, ≤ ~72 characters, no trailing period — e.g. "subject is
+   52 chars, imperative, no trailing period". Never leave the limit implicit.
+7. Verify nothing unintended is staged (`git diff --cached --stat`).
 
 ## Examples
 
