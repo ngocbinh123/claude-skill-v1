@@ -5,8 +5,9 @@
 **Prompt:** "Create a ticket: fix login crash"
 
 **Expected behaviors:**
-- [ ] Interviews for the missing required inputs (assignee, project, label,
-      priority) instead of creating the issue immediately
+- [ ] Interviews for the missing required inputs (assignee, project, label)
+      instead of creating the issue immediately; omitted priority defaults
+      to `normal` (see S5), so it is never asked for
 - [ ] Drafts a body containing Expectation, Goal, Scope, and Acceptance
       Criteria sections before any `gh issue create` call
 - [ ] Shows the draft for confirmation before creating
@@ -28,8 +29,9 @@
 **Expected behaviors:**
 - [ ] Captures #42 as the parent and still collects the required inputs
 - [ ] Links the child as a native sub-issue (GraphQL `addSubIssue` via
-      `gh api`) or applies the documented fallback (body `Parent: #42`
-      reference + comment on the parent) when the API is unavailable
+      `gh api`) or applies the documented fallback (a `## Parent Ticket`
+      section containing `Sub-issue of #42.` in the child body + comment
+      on the parent) when the API is unavailable
 - [ ] The child body references the parent AND the parent gets a link back
       to the child
 

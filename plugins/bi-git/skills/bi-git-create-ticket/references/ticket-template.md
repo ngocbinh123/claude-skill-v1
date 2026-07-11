@@ -79,8 +79,8 @@ even without the native relationship. Report which mechanism was used.
 Accept the project by name. Resolve it before creating:
 
 ```bash
-gh project list --owner "$OWNER" --format json \
-  --jq '.projects[] | select(.title == "$PROJECT_NAME") | .number'
+gh project list --owner "$OWNER" --limit 100 --format json \
+  | jq --arg name "$PROJECT_NAME" '.projects[] | select(.title == $name) | .number'
 ```
 
 If zero or multiple projects match, list the candidates and ask the user to
