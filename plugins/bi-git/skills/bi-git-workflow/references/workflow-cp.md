@@ -66,10 +66,17 @@ earlier outside this workflow may also be about to leave the machine, so scan
 the full outgoing range before pushing:
 
 ```bash
-BASE=$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)
-git fetch origin
-git diff origin/$BASE...HEAD 2>/dev/null | grep '^+' | grep -iE "(api[_-]?key|token|password|secret|credential|AKIA[0-9A-Z]{16}|-----BEGIN .*PRIVATE KEY|ghp_|sk_live_|xox[bp]-)"
+BASE=$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name 2>/dev/null) ||
+  BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+[ -n "$BASE" ] || { echo "STOP: cannot resolve base branch"; exit 1; }
+git fetch origin || { echo "STOP: fetch failed — refs may be stale"; exit 1; }
+git diff origin/$BASE...HEAD 2>/dev/null | grep '^+' | grep -iE "(api[_-]?key|token|password|secret|credential|AKIA[0-9A-Z]{16}|-----BEGIN .*PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|github_pat_|sk_live_|xox[bp]-|(mongodb|postgres|mysql|redis)://[^ ]*:[^ ]*@)"
 ```
+
+Fail closed: if the base branch cannot be resolved (works without `gh` via the
+remote-HEAD fallback) or `git fetch origin` fails, ABORT — a scan against
+stale refs can report a false clean result. The content regex is the SAME
+complete pattern as step 2b; never use a reduced pattern here.
 
 (First push of a new branch: diff against `origin/$BASE` alone.) On a hit:
 STOP and report as in step 2 — a secret in an earlier commit needs history
@@ -94,6 +101,6 @@ git push -u origin "$(git branch --show-current)"
 
 | Error | Action |
 |-------|--------|
-| Push rejected (non-fast-forward) | `git pull --rebase`, resolve, push again — never `--force` |
+| Push rejected (non-fast-forward) | `git pull --rebase`, resolve conflicts, RE-RUN the step-5 outgoing-range scan (the rebase may have changed outgoing content), then push — never `--force` |
 | No remote `origin` | Ask the user which remote to use |
 | Nothing to commit | Report clean tree, exit |
