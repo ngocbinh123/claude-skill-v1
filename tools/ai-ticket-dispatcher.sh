@@ -452,7 +452,10 @@ run_review() { # <issue-number> <pr-number> <prompt-file>
 
 # ------------------------------------- review-watch cheap checks (§3.1-2) --
 # Runs every cycle for board "In review" + cooked tickets, even when
-# 'reviewed' is present. Appends expensive review sessions to the queue.
+# 'reviewed' is present (reviewed = "reviewed once", not "CI green"). Re-checks
+# comments + CI and appends an expensive review session to the queue whenever
+# new comments exist or CI is not green. Only an in-flight 'reviewing' claim
+# suppresses re-queue.
 review_cheap_check() { # <issue-number> — may append to $QUEUE_FILE
   local n=$1 pr pr_num pr_url pr_state last comments ci prompt_file
   pr=$(latest_pr_for_issue "$n")
@@ -476,14 +479,18 @@ review_cheap_check() { # <issue-number> — may append to $QUEUE_FILE
     ;;
   esac
 
-  # OPEN: session is one-shot — reviewing/reviewed blocks a new session.
-  if has_label "$n" reviewing || has_label "$n" reviewed; then return; fi
+  # OPEN: only an in-flight session (reviewing) blocks a new one, so
+  # overlapping cycles never double-run. 'reviewed' does NOT block: it means
+  # "reviewed once", NOT "CI green / all comments handled". A PR can stay red
+  # or turn red after that one-shot session, so every cycle we re-check
+  # comments + CI on a reviewed PR and re-queue when work remains.
+  if has_label "$n" reviewing; then return; fi
 
   last=$(marker_info "$pr_num" | cut -f2)
   comments=$(new_pr_comments "$pr_num" "$last")
   ci=$(ci_status_text "$pr_num")
   if [ -z "$comments" ] && [ "$ci" = "green" ]; then
-    return # nothing new — exit, 0 tokens
+    return # no new comments since the marker and CI green — exit, 0 tokens
   fi
 
   prompt_file="$WORK_DIR/review-$n.prompt"
