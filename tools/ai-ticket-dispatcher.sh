@@ -328,9 +328,8 @@ run_claude() { # <prompt> — runs in the real codebase, bounded by SESSION_TIME
 }
 
 run_brainstorm() { # <issue-number>
-  local n=$1 url claim_ts prompt ok
+  local n=$1 url prompt ok
   url=$(issue_url "$n")
-  claim_ts=$(now_iso)
   prompt="/ck:brainstorm 'Analyze and clarify the requirement of issue #$n ($url).
 Produce a structured analysis with EXACTLY these sections:
 
@@ -360,9 +359,14 @@ Post the FULL analysis (all sections above, not a summary) as ONE comment
 on issue #$n, prefixed with the marker line <!-- ai-brainstorm -->.'"
   log "#$n: brainstorm session starting (log: $CYCLE_LOG_DIR/session-brainstorm-$n.log)"
   run_claude "$prompt" >"$CYCLE_LOG_DIR/session-brainstorm-$n.log" 2>&1
-  # Success = a new <!-- ai-brainstorm --> comment exists (exit 0 is NOT enough).
+  # Success = ANY <!-- ai-brainstorm --> comment exists (exit 0 is NOT enough).
+  # The marker comment IS the done-marker and brainstorm is idempotent: on a
+  # re-run (planned removed) where the marker already exists, the session
+  # correctly declines to repost, so a "new comment since claim_ts" check would
+  # never see success and leave 'planning' to be mislabeled agent-ignore by
+  # stale recovery. Presence of the marker — old or new — means brainstorm done.
   ok=$(gh api "repos/$REPO/issues/$n/comments" --paginate --jq \
-    "[.[] | select(.created_at > \"$claim_ts\" and (.body | contains(\"<!-- ai-brainstorm -->\")))] | length" 2>/dev/null)
+    "[.[] | select(.body | contains(\"<!-- ai-brainstorm -->\"))] | length" 2>/dev/null)
   if [ "${ok:-0}" -gt 0 ]; then
     swap_label "$n" planning planned
     log "#$n: brainstorm done — planning -> planned"
