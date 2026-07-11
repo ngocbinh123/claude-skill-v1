@@ -24,10 +24,21 @@ small scope, clear narrative, zero surprises.
 
 ## PR title and description
 
-Title follows the same convention as commits: `type(scope): subject`.
+Title follows the same convention as commits: `type(scope): subject`. When
+the user offers a vague title ("fix stuff", "updates"), don't just cite the
+convention — PROPOSE a concrete conventional title derived from the diff
+(e.g. `fix(auth): handle expired refresh tokens`), even if it's a best-guess
+the user can correct.
 
-Description template (adapt to the repo's PR template if one exists — check
-`.github/pull_request_template.md` first):
+**Template check comes FIRST — always.** Before writing any description,
+look for the host repo's own template: `.github/pull_request_template.md`,
+`.github/PULL_REQUEST_TEMPLATE.md`, or files under
+`.github/PULL_REQUEST_TEMPLATE/`; recent merged PRs are a fallback signal for
+the expected structure. If a repo template exists, its section structure WINS
+— the template below is only the fallback when the repo has none. State
+explicitly which one you used.
+
+Fallback description template (no repo template found):
 
 ```markdown
 ## What
@@ -69,6 +80,11 @@ Rules:
 ## Anti-patterns
 
 - Do NOT open a PR whose description is empty or just repeats the title.
+  When the user says "no description needed", write (or offer) the
+  What/Why/Testing sections anyway and explain the concrete harm of an empty
+  one: the reviewer must reverse-engineer intent from the diff, review slows
+  down and misses context, and future maintainers doing archaeology on the
+  merged PR find nothing.
 - Do NOT mix "drive-by" fixes into a feature PR — separate PR, easy approve.
 - Do NOT mark threads resolved on the reviewer's behalf without a change or
   an agreed reply.

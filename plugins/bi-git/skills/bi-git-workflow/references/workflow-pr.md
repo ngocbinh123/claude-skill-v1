@@ -64,27 +64,43 @@ Closes #<id>
 
 ## 5. Create the PR
 
+Write the filled template/fallback Markdown to a temp file first — bodies can
+contain backticks, `$()`, or quotes that the shell would interpret if passed
+as a `--body` literal:
+
 ```bash
+BODY_FILE=$(mktemp)
+# write the filled body into "$BODY_FILE" (file-write tool, or a heredoc
+# with a QUOTED delimiter: cat > "$BODY_FILE" <<'EOF' ... EOF)
 gh pr create --base "$BASE" --head "$HEAD" \
   --title "type(scope): subject" \
-  --body "<filled template or fallback>"
+  --body-file "$BODY_FILE"
 ```
 
-Title: conventional format, <72 chars, no AI references. Capture the PR URL
-from the output.
+Title: conventional format, <72 chars, no AI references, quoted as a plain
+string (no interpolation of generated text). Capture the PR URL from the
+output.
 
 ## 6. Link back to the ticket
 
 **6a. Comment the PR link on the ticket (required):**
 
+Same rule as step 5 — the comment contains backticks and generated text, so
+pass it through a file, never a shell literal:
+
 ```bash
-gh issue comment <id> --body "## Pull Request Linked
+COMMENT_FILE=$(mktemp)
+cat > "$COMMENT_FILE" <<'EOF'
+## Pull Request Linked
 
 | Field | Value |
 |-------|-------|
-| **Branch** | \`<branch>\` |
+| **Branch** | `<branch>` |
 | **PR** | <pr-url> |
-| **PR Title** | <pr-title> |"
+| **PR Title** | <pr-title> |
+EOF
+# fill in the placeholders in the file, then:
+gh issue comment <id> --body-file "$COMMENT_FILE"
 ```
 
 **6b. Development-section branch link (best effort, non-blocking):**

@@ -60,7 +60,13 @@ destroy teammates' commits pushed after your last fetch.
 ## Anti-patterns
 
 - Do NOT resolve by accepting one whole side (`--ours`/`--theirs`) unless you
-  have verified the other side's change is genuinely obsolete.
+  have verified the other side's change is genuinely obsolete. Before doing
+  so, NAME the specific incoming changes that would be discarded — enumerate
+  them per file from the conflict markers or `git log --oneline <range> --
+  <file>` ("this drops the null-check added in a1b2c3d and the retry logic in
+  d4e5f6a"), never just a generic "some changes may be lost" warning. If you
+  cannot run commands right now, enumerate from whatever conflict content is
+  visible before agreeing to discard anything.
 - Do NOT `git push --force` to "make the error go away" — diagnose first.
 - Do NOT continue a rebase while tests are failing "to fix later"; fixing at
   the conflicting commit is cheaper than untangling afterwards.
