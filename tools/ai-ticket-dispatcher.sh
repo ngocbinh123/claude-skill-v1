@@ -37,7 +37,7 @@ BYPASS_PERMISSIONS="${BYPASS_PERMISSIONS:-1}"
 CLAUDE_EXTRA_DIRS="${CLAUDE_EXTRA_DIRS:-$HOME/Documents/my-project/worktrees}"
 # Wall-clock ceiling per claude -p session. A session that loses the API retries
 # until it gives up (observed: 48 min) while holding its worker slot.
-SESSION_TIMEOUT_SECS="${SESSION_TIMEOUT_SECS:-1800}"
+SESSION_TIMEOUT_SECS="${SESSION_TIMEOUT_SECS:-3600}"
 # Session transcripts survive the cycle; WORK_DIR does not.
 LOG_DIR="${LOG_DIR:-$HOME/.claude/logs/ai-ticket-dispatcher}"
 
@@ -376,14 +376,41 @@ run_cook() { # <issue-number>
   url=$(issue_url "$n")
   claim_ts=$(now_iso)
   prompt="/ck:vibe $url
-Before planning, read the issue comments and locate the latest comment
-marked <!-- ai-brainstorm -->. Treat it as the requirement contract:
-implement the Goal within Scope, do NOT touch Out-of-scope items, write
-the tests from the Verification (TDD) section first and make them the
-pass/fail gate, and prefer the recommended approach from Ideas unless the
-codebase contradicts it (if you deviate, say why in the PR description).
-If no brainstorm comment exists, proceed from the issue body alone and
-note that in the PR description."
+
+BEFORE writing any plan, read the whole ticket with 'gh issue view $n
+--comments': the title, the body, and every comment in chronological
+order. Comments override the body where they conflict; the newest comment
+wins. Then locate the latest comment marked <!-- ai-brainstorm --> and
+treat it as the requirement contract: implement the Goal within Scope, do
+NOT touch Out-of-scope items, write the tests from the Verification (TDD)
+section first and make them the pass/fail gate, and prefer the recommended
+approach from Ideas unless the codebase contradicts it (if you deviate,
+say why in the PR description). Answers carried in a
+<!-- ticket-automation:clarify-answers --> comment are decisions already
+made, not open questions. Do not start planning until you can state, from the ticket
+alone, what the Goal is and what is out of scope. If no brainstorm comment
+exists, proceed from the issue body plus comments and note that in the PR
+description.
+
+This session is headless and single-turn: when you end your turn the
+process exits and every background job dies with it. Background jobs are
+allowed and useful for parallelism — but you must read each one's output
+before ending your turn. Never end the turn with a job still pending.
+The turn ends only after the PR exists.
+
+Do NOT run the behavioral eval suite (node tools/run-evals.js) locally. It
+calls the API per scenario, takes many minutes, and is the step that stalls
+a headless turn. CI is the behavioral eval-gate: skill-evals.yml runs every
+scenario of the touched plugins on the PR. Your local gate is the fast
+static checks ONLY: node tools/lint-frontmatter.js && node
+tools/check-governance.js && node tools/sync-versions.js --check. Still
+write the eval scenarios first and commit them (they ARE the TDD gate), but
+let CI execute them. Open the PR as soon as the static checks pass; the
+review stage watches CI from there.
+
+When updating the issue, comment the plan link and the acceptance criteria
+only. Do not comment the branch name, ship mode, implementation route, or
+an implementation summary — the dispatcher owns issue status reporting."
   log "#$n: cook session starting (log: $CYCLE_LOG_DIR/session-cook-$n.log)"
   run_claude "$prompt" >"$CYCLE_LOG_DIR/session-cook-$n.log" 2>&1
   # Success = an OPEN PR referencing the issue, created after the claim.
