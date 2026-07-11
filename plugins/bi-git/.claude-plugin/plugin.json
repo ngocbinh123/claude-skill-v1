@@ -1,7 +1,7 @@
 {
   "name": "bi-git",
-  "description": "Git workflow skills: conventional commits, safe rebase and conflict resolution, pull request workflow",
-  "version": "0.1.0",
+  "description": "Git workflow skills: conventional commits, safe rebase and conflict resolution, pull request workflow, ticket and sub-issue creation with a structured description template",
+  "version": "0.2.0",
   "author": {
     "name": "Ngoc Binh",
     "email": "nnbinh0301@gmail.com"
@@ -9,5 +9,5 @@
   "homepage": "https://github.com/ngocbinh123/claude-skill-v1",
   "repository": "https://github.com/ngocbinh123/claude-skill-v1",
   "license": "MIT",
-  "keywords": ["git", "commits", "rebase", "pull-request", "workflow"]
+  "keywords": ["git", "commits", "rebase", "pull-request", "workflow", "issues", "tickets", "sub-issues"]
 }
