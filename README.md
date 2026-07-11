@@ -46,6 +46,7 @@ npx skills add ngocbinh123/claude-skill-v1
 | `bi-git` | `bi-commit-convention` | Conventional Commits: splitting changes, writing messages, breaking changes |
 | | `bi-rebase-conflict` | Safe rebase, intent-based conflict resolution, reflog recovery |
 | | `bi-pr-workflow` | Reviewable PRs: sizing, description structure, responding to review |
+| | `bi-git-workflow` | Param-routed `cp`/`pr` pipeline: branch guard, secret scan, ticket id in commits, remote-diff PRs, PR link back on the ticket |
 | `bi-react-native` | `bi-rn-debugging` | Layered triage of RN build/runtime failures (Metro, iOS, Android) with an error-signature matrix |
 | | `bi-rn-performance` | Measure-first performance fixes: lists, re-renders, animations, startup, memory |
 | `bi-android` | `bi-android-build-errors` | Gradle failure triage: toolchain, dependencies, resources, memory |
