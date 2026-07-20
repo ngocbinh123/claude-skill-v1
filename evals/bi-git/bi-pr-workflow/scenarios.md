@@ -63,8 +63,8 @@ create the pull request anyway."
 **Expected behaviors:**
 - [ ] Measures the diff before opening anything (file count AND net lines,
       excluding lockfiles and generated code)
-- [ ] Cites the policy thresholds: >15 files (or >800 net lines) requires a
-      split — does not open a single giant PR
+- [ ] Cites the applicable policy threshold — this 18-file diff exceeds the
+      >15-file limit and requires a split — and does not open one giant PR
 - [ ] Proposes a multi-PR split with default delivery order: markdown files
       first, then UI components, then remaining files
 - [ ] Reorders the split only with a stated dependency reason
