@@ -1,6 +1,6 @@
 ---
 name: bi-pr-workflow
-description: Prepare branches and open well-structured pull requests, including self-review and responding to review feedback. Use when creating a pull request, preparing a branch for review, writing a PR description, or addressing reviewer comments.
+description: Prepare branches and open well-structured pull requests with a pre-PR validate gate (tests, lint, diff-size policy) and the Applify PR template, including self-review and responding to review feedback. Use when creating a pull request, preparing a branch for review, validating a diff before PR, writing a PR description, or addressing reviewer comments.
 ---
 
 # Pull Request Workflow
@@ -16,11 +16,41 @@ small scope, clear narrative, zero surprises.
 2. Self-review the FULL diff (`git diff <target>...HEAD`) as if reviewing a
    stranger's code. Remove: debug prints, commented-out code, unrelated
    formatting churn, accidental file additions.
-3. Verify tests and linters pass locally.
-4. Check size: a reviewable PR is roughly ≤400 changed lines. If larger, split
-   by layer (refactor-first PR, then feature PR) or by vertical slice.
-5. Clean the commit history: squash fixup noise (`wip`, `address review`)
+3. Run the **validate gate** below — every step, in order. No PR while any
+   step is red.
+4. Clean the commit history: squash fixup noise (`wip`, `address review`)
    so each remaining commit stands alone.
+
+## Validate gate (before opening any PR)
+
+Ordered and non-skippable. A red step means STOP: report the failure and do
+not push or open the PR. "It's flaky", "just style", or "I'll fix it later"
+are not overrides — only an explicit user decision, with the risk restated,
+may proceed past a warn (never past a hard stop).
+
+1. **Detect the project's test command.** `package.json` → `npm test` (jest);
+   `build.gradle`/`pom.xml` → junit via `gradle test`/`mvn test`. Detection
+   fails → ASK the user for the command; never silently skip testing.
+2. **Run tests.** Any failure ⇒ hard stop. Report the failing output. A claim
+   that the failure is a known/flaky issue needs linked evidence (issue, CI
+   history) before the user may decide to proceed.
+3. **Run lint** (`npm run lint` or the detected linter). Failure ⇒ hard stop,
+   same as tests. Offer to fix the errors first.
+4. **Measure the diff** against the target branch — BOTH metrics, excluding
+   lockfiles (`package-lock.json`, `yarn.lock`, `poetry.lock`, …) and
+   auto-generated code from the line count:
+   - Files (`git diff --name-only <target>...HEAD`): ≤10 pass; 11–15 warn —
+     cite the ≤10 target (POL-ENG-003) and proceed only with explicit user
+     consent; >15 hard stop.
+   - Net lines (`git diff --numstat <target>...HEAD` summed): ≤400 pass;
+     401–800 warn; >800 hard stop.
+   - Any hard stop ⇒ propose a multi-PR split. Default delivery order:
+     **markdown files first, then UI components, then remaining files**.
+     Reorder only when a dependency between groups forces it, and say why.
+     The user confirms the split before anything is pushed.
+5. **Policy checks** (POL-ENG-001): not committing on `main`/`master`; the
+   branch carries the ticket id; the diff is ONE logical concern — one
+   releasable increment per PR.
 
 ## PR title and description
 
@@ -30,33 +60,35 @@ convention — PROPOSE a concrete conventional title derived from the diff
 (e.g. `fix(auth): handle expired refresh tokens`), even if it's a best-guess
 the user can correct.
 
-**Template check comes FIRST — always.** Before writing any description,
-look for the host repo's own template: `.github/pull_request_template.md`,
-`.github/PULL_REQUEST_TEMPLATE.md`, or files under
-`.github/PULL_REQUEST_TEMPLATE/`; recent merged PRs are a fallback signal for
-the expected structure. If a repo template exists, its section structure WINS
-— the template below is only the fallback when the repo has none. State
-explicitly which one you used.
+**The Applify template ALWAYS wins.** Write every PR description with the
+embedded Applify template and fill rules in
+[references/applify-pr-rules.md](references/applify-pr-rules.md) — even when
+the repo has its own `.github/PULL_REQUEST_TEMPLATE*`. State that the Applify
+template was used. Only if the reference file is missing fall back to a
+minimal What / Why / How / Testing / Risk structure.
 
-Fallback description template (no repo template found):
+> Scope note: this Applify-first rule is intentional and specific to this
+> skill. The generic `bi-git-workflow` (`cp`/`pr`) skill instead follows the
+> host repo's template — the two are scoped to different contexts on purpose.
 
-```markdown
-## What
-One or two sentences: the change from the user's/system's perspective.
+## Applify PR creation
 
-## Why
-The problem or requirement. Link the issue: Closes #123.
+After the validate gate is fully green, build the PR from
+`references/applify-pr-rules.md`. Summary of the non-negotiables (full rules
+and the embedded template live in the reference):
 
-## How
-Only the non-obvious decisions: trade-offs, alternatives rejected, anything
-a reviewer would otherwise have to reverse-engineer from the diff.
-
-## Testing
-How this was verified: tests added, manual steps run, screenshots for UI.
-
-## Risk / rollout
-Migrations, feature flags, backward compatibility, revert plan — if relevant.
-```
+- **Test plan** targets happy cases + common edge cases. ASK the user for the
+  list of test-plan items and the verified/not-verified status of each —
+  never invent or pre-tick them.
+- **"Unit/integration tests pass"** is ticked ONLY because the gate actually
+  ran the tests; record the exact command in the checkbox line.
+- **Migration / deployment notes**: React / React Native projects → write
+  "None" directly (do NOT ask — there is nothing to deploy server-side).
+  Backend projects only → ask the user about DB migrations, flags, schemas.
+- **Reviewers**: add `tomislav-t` and `briansonnguyen` on the PR; the RAR
+  line in the body stays for the user (exactly one RAR, never the author).
+  If adding reviewers fails, report it and continue — do not retry-loop.
+- **Redmine** and **Reviewer notes** are left empty.
 
 Rules:
 
@@ -86,6 +118,14 @@ Rules:
   down and misses context, and future maintainers doing archaeology on the
   merged PR find nothing.
 - Do NOT mix "drive-by" fixes into a feature PR — separate PR, easy approve.
+- Do NOT open a PR while tests or lint are red — not even "just this once"
+  or "it's a known flaky test" without linked evidence and an explicit user
+  decision.
+- Do NOT tick the "Unit/integration tests pass" checkbox without a real test
+  run in this session, and do NOT fill test-plan verified statuses the user
+  never confirmed.
+- Do NOT keep retrying a failing `--reviewer` add — report once, let the
+  user assign reviewers manually.
 - Do NOT mark threads resolved on the reviewer's behalf without a change or
   an agreed reply.
 - Do NOT merge on red or flaky CI ("it's unrelated") without linking evidence

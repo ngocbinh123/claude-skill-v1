@@ -1,5 +1,19 @@
 # Changelog — bi-git
 
+## 0.2.0 — 2026-07-20
+
+- `bi-pr-workflow`: added a non-skippable pre-PR **validate gate** — detect
+  and run the project's tests (jest/junit) and lint with hard stop on
+  failure, then measure the diff on both POL-ENG-003 metrics (files warn
+  >10 / stop >15; net lines excluding lockfiles+generated warn >400 / stop
+  >800) with a guided multi-PR split (markdown → UI components → remaining),
+  plus POL-ENG-001 branch/ticket/one-increment checks (issue #18).
+- `bi-pr-workflow`: PR descriptions now use the embedded **Applify template**
+  (always wins over repo templates) via new `references/applify-pr-rules.md`
+  — test-plan interview, tests checkbox ticked only from a real run, RN/React
+  migration notes "None", default reviewers auto-added with graceful
+  degradation, Redmine/Reviewer-notes skipped.
+
 ## 0.1.2 — 2026-07-10
 
 - New skill `bi-git-workflow`: param-routed `cp` (stage → layered secret
