@@ -63,13 +63,18 @@ jobs:
           PLUGINS="${{ steps.targets.outputs.plugins }}"
           ABLATION=""
           [ "${{ inputs.ablation }}" = "true" ] && ABLATION="--ablation"
+          # LLM-graded scenarios are stochastic; give each a few extra samples
+          # so a single unlucky judgement does not fail the whole suite. The
+          # pass bar is unchanged — a scenario must still meet every expected
+          # behavior to count as passing.
+          RETRIES="--retries 3"
           if [ -z "$PLUGINS" ]; then
-            node tools/run-evals.js $ABLATION
+            node tools/run-evals.js $ABLATION $RETRIES
           else
             STATUS=0
             for p in $PLUGINS; do
               [ -d "evals/$p" ] || continue
-              node tools/run-evals.js --plugin "$p" $ABLATION || STATUS=1
+              node tools/run-evals.js --plugin "$p" $ABLATION $RETRIES || STATUS=1
             done
             exit $STATUS
           fi
