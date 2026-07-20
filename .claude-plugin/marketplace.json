@@ -14,7 +14,7 @@
       "name": "bi-git",
       "source": "./plugins/bi-git",
       "description": "Git workflow skills: conventional commits, safe rebase and conflict resolution, pull request workflow",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "license": "MIT",
       "category": "development"
     },

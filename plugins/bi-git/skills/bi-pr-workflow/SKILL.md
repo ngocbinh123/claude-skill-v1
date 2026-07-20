@@ -74,9 +74,16 @@ minimal What / Why / How / Testing / Risk structure.
 ## Applify PR creation
 
 After the validate gate is fully green, build the PR from
-`references/applify-pr-rules.md`. Summary of the non-negotiables (full rules
-and the embedded template live in the reference):
+`references/applify-pr-rules.md`. Keep the body short and ticket-focused.
+Summary of the non-negotiables (full rules and the embedded template live in
+the reference):
 
+- **Summary** is 1–3 sentences on the behavior shipped — not a walkthrough of
+  every change.
+- **Scope** names only the key classes/files or scenarios affected; do not
+  enumerate every changed line.
+- **Acceptance criteria** are copied verbatim from the ticket — do not reword
+  or re-derive them.
 - **Test plan** targets happy cases + common edge cases. ASK the user for the
   list of test-plan items and the verified/not-verified status of each —
   never invent or pre-tick them.
@@ -85,10 +92,8 @@ and the embedded template live in the reference):
 - **Migration / deployment notes**: React / React Native projects → write
   "None" directly (do NOT ask — there is nothing to deploy server-side).
   Backend projects only → ask the user about DB migrations, flags, schemas.
-- **Reviewers**: add `tomislav-t` and `briansonnguyen` on the PR; the RAR
-  line in the body stays for the user (exactly one RAR, never the author).
-  If adding reviewers fails, report it and continue — do not retry-loop.
-- **Redmine** and **Reviewer notes** are left empty.
+- **Redmine** is left empty. There is **no Reviewers section and no Reviewer
+  notes section** — do not add them and do not auto-request reviewers.
 
 Rules:
 
@@ -124,8 +129,12 @@ Rules:
 - Do NOT tick the "Unit/integration tests pass" checkbox without a real test
   run in this session, and do NOT fill test-plan verified statuses the user
   never confirmed.
-- Do NOT keep retrying a failing `--reviewer` add — report once, let the
-  user assign reviewers manually.
+- Do NOT pad the Summary or Scope into a design doc — Summary is 1–3
+  sentences, Scope names the key files/scenarios only.
+- Do NOT reword or re-derive the ticket's acceptance criteria — copy them
+  verbatim.
+- Do NOT add a Reviewers or Reviewer notes section, and do not auto-request
+  reviewers.
 - Do NOT mark threads resolved on the reviewer's behalf without a change or
   an agreed reply.
 - Do NOT merge on red or flaky CI ("it's unrelated") without linking evidence

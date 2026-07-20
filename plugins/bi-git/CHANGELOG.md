@@ -1,5 +1,14 @@
 # Changelog — bi-git
 
+## 0.3.0 — 2026-07-20
+
+- `bi-pr-workflow`: refined the Applify PR template to be concise and
+  ticket-focused — Summary is 1–3 sentences, Scope names only key
+  classes/files or scenarios, and Acceptance criteria are copied verbatim
+  from the ticket. Removed the Reviewers and Reviewer notes sections and the
+  auto-request-reviewers behavior (reviewer assignment now handled outside
+  the skill) (issue #20).
+
 ## 0.2.0 — 2026-07-20
 
 - `bi-pr-workflow`: added a non-skippable pre-PR **validate gate** — detect
