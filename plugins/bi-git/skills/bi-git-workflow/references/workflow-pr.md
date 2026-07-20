@@ -39,6 +39,11 @@ reviewer will not see. The PR describes what is ON THE REMOTE.
 
 ## 4. Fill the PR template — or the fallback body
 
+> Scope note: this generic `cp`/`pr` workflow follows the HOST repo's template.
+> The dedicated `bi-pr-workflow` skill is Applify-specific and deliberately
+> overrides that (its embedded Applify template always wins). The two rules are
+> scoped to different contexts on purpose — do not "reconcile" them.
+
 **Host repo has `.github/PULL_REQUEST_TEMPLATE.md`:** use its exact section
 structure:
 
