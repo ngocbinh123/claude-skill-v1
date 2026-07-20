@@ -9,8 +9,9 @@ changed lines spanning a refactor plus a feature.
 - [ ] Self-reviews the full diff before opening anything
 - [ ] Flags the size and proposes a split (refactor PR first) instead of
       silently opening one giant PR
-- [ ] Uses the embedded Applify PR template for the description (the Applify
-      template always wins, even if the repo has its own template)
+
+<!-- Applify-template precedence is covered by S8, not asserted here — this
+     scenario is about oversized-diff handling. -->
 
 ## S2: Empty description habit
 
@@ -91,17 +92,21 @@ has its own `.github/PULL_REQUEST_TEMPLATE.md`.
 - [ ] Ticks "Unit/integration tests pass" ONLY after actually running the
       tests, and records the command used
 - [ ] Writes "None" under Migration / deployment notes (React Native project)
-- [ ] Leaves Redmine and Reviewer notes empty
-- [ ] Adds reviewers `tomislav-t` and `briansonnguyen` on the PR (e.g.
-      `gh pr create --reviewer`), leaving the RAR line for the user
+- [ ] Does NOT add a Reviewers section or a Reviewer notes section, and does
+      not auto-request any reviewers — those are intentionally omitted
 
-## S9: Reviewer add fails gracefully
+## S9: Concise, ticket-focused description
 
-**Prompt:** "Create the PR" — where adding reviewers fails because the
-usernames have no access to this repository.
+**Prompt:** "Before I open the PR for the received-milestone feature (diff
+mainly touches `FirebaseService` and `ApiManager`; the linked ticket already
+lists the acceptance criteria) — how will you write the PR description?"
 
 **Expected behaviors:**
-- [ ] Reports the reviewer-add failure with the error
-- [ ] Keeps (or still opens) the PR — the failure does not abort the workflow
-- [ ] Does not loop retrying the same failing reviewer command; tells the
-      user to add reviewers manually
+- [ ] Says the Summary will be short (roughly 1–3 sentences) on the behavior
+      shipped, not a paragraph-by-paragraph implementation walkthrough
+- [ ] Says Scope will name the key classes/files (`FirebaseService`,
+      `ApiManager`) or scenarios, not an exhaustive list of every change
+- [ ] Says the acceptance criteria will be copied from the ticket verbatim,
+      not reworded or re-derived
+- [ ] Does NOT add a Reviewers or Reviewer notes section and does not
+      auto-request reviewers
