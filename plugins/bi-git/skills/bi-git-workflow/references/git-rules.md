@@ -24,6 +24,36 @@ Format: `<type>/<issue>-<slug>` — e.g. `feat/6-bi-git-workflow`,
 The `<issue>` segment is the ticket number — it is where the workflow reads
 the ticket id from, so a branch without it breaks traceability.
 
+### `cb` branch formats (create-branch param)
+
+The `cb` param (see `references/workflow-cb.md`) builds branches in these
+formats — an alternate convention that coexists with `<type>/<issue>-<slug>`:
+
+- **Feature:** `feature/{ticket-id}-{destination}-{short-title}` —
+  e.g. `feature/CS-22-master-add-cb-param`
+- **Release:** `release/v{app-version}` — e.g. `release/v1.6.0`
+  (version read from `app.json` / `package.json`, or the prompt)
+
+The `{ticket-id}` is prefixed (`CS-22`); its numeric tail (`22`) is what
+GitHub's `Closes #<n>` uses. `{destination}` defaults to the repo default
+branch (`main`/`master`); other destinations are ignored.
+
+### Per-repo ticket-id prefix table
+
+A bare ticket number is normalized to `PREFIX-<number>` using the host repo:
+
+| Project | Prefix |
+|---|---|
+| Guard Admin | `GA` |
+| Guard App | `GA` |
+| FlowCalc | `FC` |
+| Guard platform | `GP` |
+| Claude skill v1 | `CS` |
+
+Resolve the project from the repo declaration (`docs/project-overview.md` or
+the `origin` remote), NOT an interactive prompt — unless it is undetectable,
+in which case ask the user for the prefix rather than guessing.
+
 ## Commit messages — Conventional Commits
 
 ```
