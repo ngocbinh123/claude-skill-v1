@@ -8,9 +8,14 @@ that already carries a traceable ticket id and a valid name.
 content, stashes a dirty tree, or rebases — those belong to `cp` / `pr` and
 `bi-rebase-conflict`.
 
-## 1. Resolve ticket id + prefix
+## 1. Resolve branch type, then the ticket id + prefix
 
-Read the ticket id from the prompt.
+First decide the branch type from the prompt: a **feature** branch requires a
+ticket id (resolve it below); a **release** branch (`release/v{app-version}`,
+step 4) carries no ticket — skip straight to version resolution and use a
+no-ticket creation path (plain `git`, since `gh issue develop` needs an issue).
+
+For a feature branch, read the ticket id from the prompt.
 
 - Already prefixed (`CS-22`, `FC-123`) → use as-is.
 - Bare number (`123`) → prepend the host repo's prefix from the per-repo
@@ -37,15 +42,18 @@ prefix, ASK the user for the prefix; never guess one.
 
 ```bash
 git branch --show-current
+gh repo view --json defaultBranchRef --jq .defaultBranchRef.name  # discover the default
 ```
 
-If the current branch is `main` / `master` (or the repo default), branching off
-it is fine — proceed. If it is anything else (`feature/old-thing`, `release/*`,
+Resolve the repo's **actual** default branch (usually `main`/`master`, but it
+may be `develop`/`trunk`) — that resolved value is the base and the `{destination}`
+segment (step 4). If the current branch IS the default, branching off it is
+fine — proceed. If it is anything else (`feature/old-thing`, `release/*`,
 detached HEAD), STOP and confirm with the user before branching off it, and
-offer branching from `main`/`master` as an explicit option:
+offer branching from the default as an explicit option:
 
-```
-Current branch is `feature/old-thing`, not main/master.
+```text
+Current branch is `feature/old-thing`, not the default (`master`).
   1) Branch from `feature/old-thing` (keep its commits)
   2) Branch from `master` (clean base)   ← usual choice
 ```
@@ -64,8 +72,12 @@ command -v gh                    # is gh installed?
   the ticket's Development section in one step:
 
   ```bash
-  gh issue develop <numeric-id> --name "<branch-name>" --base "<base>"
+  gh issue develop <numeric-id> --name "<branch-name>" --base "<base>" --checkout
   ```
+
+  `--checkout` is required — without it `gh issue develop` creates the branch
+  remotely but leaves the working tree on the old branch, so later `cp`/`pr`
+  commands would run on the wrong branch.
 
 - **Otherwise (no `gh`, or non-GitHub remote)** → plain git:
 
@@ -81,13 +93,21 @@ command -v gh                    # is gh installed?
 
 ### Formats (see `references/git-rules.md`)
 
+`cb` uses its OWN two formats below — NOT the generic `<type>/<issue>-<slug>`
+default that `cp`/`pr` read from. Emit the name character-for-character as
+specified; the common mistakes are dropping a required segment.
+
 - **Feature:** `feature/{ticket-id}-{destination}-{short-title}`
-  - `{ticket-id}` — prefixed id from step 1 (`CS-22`)
-  - `{destination}` — the branch this work merges into; defaults to the repo
-    default (`main`/`master`). Other destinations are ignored.
+  - Literal `feature/` prefix — never the short `feat/`.
+  - `{ticket-id}` — prefixed id from step 1 (`CS-22`).
+  - `{destination}` — REQUIRED even when it is the default branch; the branch
+    this work merges into, defaulting to the repo's resolved default from step 2
+    (`main`/`master`/other). Other destinations are ignored. Do NOT omit it:
+    `feature/CS-22-master-add-cb-param`, not `feature/CS-22-add-cb-param`.
   - `{short-title}` — kebab-case slug of the ticket title, trimmed to a few
-    words (`Add cb create-branch param` → `add-cb-create-branch-param`)
-- **Release:** `release/v{app-version}`
+    words (`Add cb create-branch param` → `add-cb-create-branch-param`).
+- **Release:** `release/v{app-version}` — the `v` is REQUIRED
+  (`release/v1.6.0`, never `release/1.6.0`).
   - `{app-version}` — read from the project (`app.json` / `package.json`
     `version`) or from the prompt; never invented.
 
@@ -101,7 +121,7 @@ does not match (e.g. `my-branch` — no `feature/` type, no ticket id), do NOT
 silently rename or create it. Reject it and offer corrected suggestions as an
 **option list**, each carrying the ticket id:
 
-```
+```text
 `my-branch` doesn't match `feature/{ticket-id}-{destination}-{short-title}`. Pick one:
   1) feature/CS-22-master-add-cb-param
   2) feature/CS-22-master-my-branch
@@ -125,7 +145,7 @@ A repo that needs specialized branch logic MAY bundle a
 `scripts/create-branch.sh` and the workflow will prefer it. Documented contract
 (no executable is shipped by this skill yet — YAGNI, add when a repo needs it):
 
-```
+```text
 create-branch.sh <ticket-id> <destination> [<short-title>]
   → resolves prefix, builds the name, runs the base guard + tool detection,
     prints the branch name it created; exit non-zero on validation failure.
@@ -133,11 +153,11 @@ create-branch.sh <ticket-id> <destination> [<short-title>]
 
 ## Output summary
 
-```
+```text
 ✓ ticket id: CS-22 (prefix resolved: Claude skill v1 → CS)
 ✓ base guard: on master — ok  |  confirmed branching off <branch>
 ✓ name: feature/CS-22-master-add-cb-param (validated)
-✓ created via: gh issue develop  |  git checkout -b
+✓ created via: gh issue develop --checkout  |  git checkout -b
 ✓ push: pushed origin/<branch>  |  skipped (user declined)  |  link ticket manually (no gh)
 ```
 

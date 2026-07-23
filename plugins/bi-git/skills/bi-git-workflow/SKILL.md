@@ -28,6 +28,17 @@ No param given → ask the user which of the three to run. Any other param
 `cb` runs BEFORE the shared pre-flight below (it creates the branch the
 pre-flight guard later expects). `cp` / `pr` run the shared pre-flight first.
 
+`cb` builds names in ITS OWN formats — emit them literally, do NOT fall back
+to the generic `<type>/<issue>-<slug>` default or paraphrase them:
+
+- Feature: `feature/{ticket-id}-{destination}-{short-title}` — literal
+  `feature/` (never `feat/`), `{destination}` REQUIRED even when it is the
+  default branch (`feature/CS-22-master-add-cb-param`).
+- Release: `release/v{app-version}` — the `v` is REQUIRED (`release/v1.6.0`,
+  never `release/1.6.0`).
+
+See `references/workflow-cb.md` for the full flow.
+
 ## Shared pre-flight (`cp` and `pr`, in order)
 
 ### 1. Git-rules discovery (host rules win — conventions only)
