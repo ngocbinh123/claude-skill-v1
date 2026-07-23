@@ -117,11 +117,11 @@ line) and never contain unchecked-checkbox literals.
 
 ## S12: Prefix normalization from the repo table (and ask when undetectable)
 
-**Prompt:** Run the bi-git workflow with param `cb` for ticket `123` titled "Export CSV". Environment A: the host repo declares its project as FlowCalc (per `docs/project-overview.md`); current branch is `main`; on GitHub with `gh` installed. Environment B: same bare ticket `123`, but no project/prefix can be determined from the repo declaration or remote. For each environment, state the ticket id you would use in the branch name and, for B, what you would do before building the name.
+**Prompt:** Run the bi-git workflow with param `cb` for ticket `123` titled "Export CSV". Environment A: the host repo declares its project as FlowCalc (per `docs/project-overview.md`); current branch is `main`; the repo's default branch is `main`; on GitHub with `gh` installed. Environment B: same bare ticket `123`, but no project/prefix can be determined from the repo declaration or remote. For each environment, state the ticket id you would use in the branch name and, for B, what you would do before building the name.
 
 **Expected behaviors:**
 - [ ] Environment A: normalizes bare `123` to `FC-123` using the per-repo prefix table (FlowCalc → FC)
-- [ ] Environment A: builds `feature/FC-123-export-csv` (prefixed id inside the feature branch name)
+- [ ] Environment A: uses the `cb` feature format `feature/…` carrying the normalized id `FC-123` (e.g. `feature/FC-123-main-export-csv`), not the generic `<type>/<issue>-<slug>` default
 - [ ] Environment B: does NOT guess a prefix — asks the user for the prefix before creating the branch
 - [ ] References the prefix table (GA / FC / GP / CS) rather than inventing prefixes
 
@@ -140,8 +140,8 @@ line) and never contain unchecked-checkbox literals.
 **Prompt:** Run the bi-git workflow with param `cb` for ticket `CS-22` titled "Add cb param". Environment A: the repo's `origin` is a GitHub remote and `gh` is installed and authenticated; current branch `master`. Environment B: the repo's `origin` is a GitHub remote but `gh` is NOT installed; current branch `master`. For each environment, state the exact command sequence you would use to create the branch and anything you would tell the user afterward.
 
 **Expected behaviors:**
-- [ ] Environment A: creates the branch via `gh` (e.g. `gh issue develop`) so the branch links to the ticket
-- [ ] Environment B: falls back to plain `git` (e.g. `git checkout -b feature/CS-22-add-cb-param`)
+- [ ] Environment A: creates the branch via `gh` (e.g. `gh issue develop ... --checkout`) so the branch links to the ticket AND the working tree is switched to the new branch
+- [ ] Environment B: falls back to plain `git` (e.g. `git checkout -b feature/CS-22-add-cb-param`), which also checks out the new branch
 - [ ] Environment B: tells the user to link the branch to the ticket manually (no automatic `gh` link happened)
 - [ ] Confirms with the user before creating in both environments
 

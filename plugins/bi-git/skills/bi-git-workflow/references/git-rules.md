@@ -35,8 +35,9 @@ formats — an alternate convention that coexists with `<type>/<issue>-<slug>`:
   (version read from `app.json` / `package.json`, or the prompt)
 
 The `{ticket-id}` is prefixed (`CS-22`); its numeric tail (`22`) is what
-GitHub's `Closes #<n>` uses. `{destination}` defaults to the repo default
-branch (`main`/`master`); other destinations are ignored.
+GitHub's `Closes #<n>` uses. `{destination}` defaults to the repo's resolved
+default branch (discovered via `gh repo view --json defaultBranchRef` —
+`main`/`master`/other); other destinations are ignored.
 
 ### Per-repo ticket-id prefix table
 
