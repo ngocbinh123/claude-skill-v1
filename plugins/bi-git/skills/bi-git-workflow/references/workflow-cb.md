@@ -63,31 +63,40 @@ behalf.
 
 ## 3. Tool detection (gh vs plain git)
 
+Detect which creation tool applies — the choice decides the exact command shown
+in step 5. These are the ONLY two creation paths; never mix them (e.g. don't use
+`gh` for the guard check but then create with plain `git`).
+
 ```bash
 git remote get-url origin        # is origin a github.com remote?
 command -v gh                    # is gh installed?
 ```
 
-- **GitHub remote AND `gh` present** → create via `gh` so the branch links to
-  the ticket's Development section in one step:
+- **GitHub remote AND `gh` present (feature branch)** → creation MUST go through
+  `gh issue develop` so the branch links to the ticket's Development section in
+  one step. This is the required path — do NOT substitute `git checkout -b` when
+  `gh` is available:
 
   ```bash
   gh issue develop <numeric-id> --name "<branch-name>" --base "<base>" --checkout
   ```
 
-  `--checkout` is required — without it `gh issue develop` creates the branch
-  remotely but leaves the working tree on the old branch, so later `cp`/`pr`
-  commands would run on the wrong branch.
+  - `<numeric-id>` is the ticket's numeric tail (`CS-22` → `22`, `FC-123` → `123`).
+  - `--checkout` is required — without it `gh issue develop` creates the branch
+    remotely but leaves the working tree on the old branch, so later `cp`/`pr`
+    commands would run on the wrong branch.
 
-- **Otherwise (no `gh`, or non-GitHub remote)** → plain git:
+- **Otherwise (no `gh`, or non-GitHub remote, or a release branch)** → plain git,
+  which also checks out the new branch:
 
   ```bash
   git checkout -b "<branch-name>" "<base>"
   ```
 
   When the remote IS GitHub but the branch was made with plain `git` (no `gh`),
-  tell the user to **link the branch to the ticket manually** in the ticket UI —
-  no automatic link happened.
+  no automatic ticket link happened — so after creating, explicitly tell the
+  user: **"link this branch to the ticket manually in the ticket's Development
+  section."** State this even if they did not ask.
 
 ## 4. Branch-name build + validation
 
@@ -118,8 +127,10 @@ Example: ticket `CS-22` "Add cb param", destination `master` →
 
 If the user supplies a branch name, validate it against the format above. If it
 does not match (e.g. `my-branch` — no `feature/` type, no ticket id), do NOT
-silently rename or create it. Reject it and offer corrected suggestions as an
-**option list**, each carrying the ticket id:
+silently rename or create it. Reject it and offer corrected suggestions as a
+numbered **option list** — always at least two concrete pre-built variants (not
+a single take-it-or-leave-it name, and not "supply another title"), each
+carrying the ticket id:
 
 ```text
 `my-branch` doesn't match `feature/{ticket-id}-{destination}-{short-title}`. Pick one:
@@ -129,8 +140,14 @@ silently rename or create it. Reject it and offer corrected suggestions as an
 
 ## 5. Confirm, create, then ask about push
 
+The order below is mandatory in EVERY environment (both the `gh` and plain-git
+paths): confirmation always precedes the creation command, never the reverse.
+
 1. **Confirm before creating.** Show the final branch name and base, and wait
-   for the user's go-ahead. Never create silently.
+   for the user's go-ahead — this happens BEFORE the `gh issue develop` /
+   `git checkout -b` command runs, not after. Never create silently. When you
+   state a command sequence, put the confirmation step first, then the creation
+   command.
 2. **Create** via the tool chosen in step 3.
 3. **Ask whether to push** to the remote — do NOT auto-push:
 
