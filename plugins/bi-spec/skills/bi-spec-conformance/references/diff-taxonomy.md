@@ -36,15 +36,21 @@ Check R against the code on these axes; the first real contradiction decides.
    for existing users, platform declarations (manifest/plist/entitlements),
    feature-flag gating. (Dominant `missing` flavor.)
 
-## Evidence rules (non-negotiable)
+## Evidence rules (non-negotiable, verdict-specific)
 
-- **Every finding** needs: the **spec quote** + the **`file:line`** + a
-  **failing example** — a concrete input where spec-expected ≠ code-actual
-  (the way a failing test would show it).
-- **For `missing`**, the failing example is replaced by a **search-proof**: the
-  exact terms you grepped and the scope (diff + whole repo).
-- **No citation ⇒ not a finding.** If you cannot quote the spec and point to a
-  line (or prove absence), drop it — do not report a hunch.
+Every finding needs the **spec quote** + a **`file:line`** (or dash for
+`missing`). The third piece depends on the verdict:
+
+- **`incorrect`** → a **failing example**: a concrete input where
+  spec-expected ≠ code-actual (the way a failing test would show it).
+- **`missing`** → a **search-proof**: the exact terms you grepped and the scope
+  (diff + whole repo).
+- **`different`** → **equivalence evidence**: show the requirement is still
+  satisfied by the alternative (there is no "failing example" — nothing failed).
+- **`correct`** → the matching code location; no failing example needed.
+
+**No citation ⇒ not a finding.** If you cannot quote the spec and point to a
+line (or prove absence for `missing`), drop it — do not report a hunch.
 
 ## `missing` requires a 2-round grep
 

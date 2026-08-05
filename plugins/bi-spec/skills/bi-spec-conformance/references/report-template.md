@@ -3,6 +3,13 @@
 Write the report into the **spec file's own directory**, named
 `conformance-report-{YYMMDD}.md` — e.g. `features/docs/GA-777-alarm-assign/conformance-report-260805.md`.
 This holds regardless of where the spec lives; do not use a fixed reports dir.
+(When the spec was pasted with no file, use the output location agreed during
+input resolution and set the source header to `pasted (no file)`.)
+
+**Same-day overwrite guard:** the `{YYMMDD}` name is deterministic per day. Before
+writing, check whether the target already exists — if so, ask the user whether to
+overwrite it or append a collision-safe suffix (e.g. `-2`), so a prior report with
+confirmed findings is never silently replaced.
 
 Only **user-confirmed** mismatches appear in the findings table. `correct`
 requirements are summarised in the counts, not listed individually.
@@ -12,7 +19,7 @@ requirements are summarised in the counts, not listed individually.
 ```markdown
 # Conformance report — {spec title / ticket id}
 
-- Spec: `{spec path}`
+- Spec: `{spec path}`  (or `pasted (no file)` when the spec was pasted)
 - Implementation: `{diff command used}` on branch `{branch}`
 - Date: {YYYY-MM-DD}
 
