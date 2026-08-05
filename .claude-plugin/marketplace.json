@@ -19,6 +19,14 @@
       "category": "development"
     },
     {
+      "name": "bi-spec",
+      "source": "./plugins/bi-spec",
+      "description": "Spec conformance skills: compare an implementation against its spec and report incorrect, missing, and different requirements",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "development"
+    },
+    {
       "name": "bi-react-native",
       "source": "./plugins/bi-react-native",
       "description": "React Native development skills: build error triage, performance optimization",

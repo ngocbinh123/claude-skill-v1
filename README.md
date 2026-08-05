@@ -19,6 +19,7 @@ Every skill is developed test-first against pressure scenarios (see
 ```
 /plugin marketplace add ngocbinh123/claude-skill-v1
 /plugin install bi-git@bi-skills
+/plugin install bi-spec@bi-skills
 /plugin install bi-react-native@bi-skills
 /plugin install bi-android@bi-skills
 /plugin install bi-ios@bi-skills
@@ -47,6 +48,7 @@ npx skills add ngocbinh123/claude-skill-v1
 | | `bi-rebase-conflict` | Safe rebase, intent-based conflict resolution, reflog recovery |
 | | `bi-pr-workflow` | Reviewable PRs: sizing, description structure, responding to review |
 | | `bi-git-workflow` | Param-routed `cp`/`pr` pipeline: branch guard, secret scan, ticket id in commits, remote-diff PRs, PR link back on the ticket |
+| `bi-spec` | `bi-spec-conformance` | Compare a branch's implementation against its spec: classify each requirement as correct/incorrect/missing/different with cited evidence, batch-confirm, write a conformance report with suggested fixes (never edits code) |
 | `bi-react-native` | `bi-rn-debugging` | Layered triage of RN build/runtime failures (Metro, iOS, Android) with an error-signature matrix |
 | | `bi-rn-performance` | Measure-first performance fixes: lists, re-renders, animations, startup, memory |
 | `bi-android` | `bi-android-build-errors` | Gradle failure triage: toolchain, dependencies, resources, memory |
