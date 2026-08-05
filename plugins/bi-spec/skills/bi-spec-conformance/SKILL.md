@@ -33,9 +33,12 @@ proof the code is wrong. Either side can be the stale one — the user decides.
 - **Spec:** use the path the user provides. If none is given, **ASK** — offer
   the convention `features/docs/{ticket-id}-{title}/` as a hint. Never glob a
   guess and proceed silently. Fallback: let the user paste the requirement text.
-- **Implementation:** the branch's changes. Default `git diff <default-branch>...HEAD`
-  (e.g. `git diff master...HEAD`); if there are uncommitted changes, use the
-  working-tree diff instead. No manual `git merge-base` step, no PR required. Read the
+- **Implementation:** the branch's changes. Default is the **three-dot**
+  `git diff <default-branch>...HEAD` (e.g. `git diff master...HEAD`) — never the
+  two-dot form. If there are uncommitted changes, include the working tree too
+  (staged + unstaged + untracked) **in addition to** the committed branch diff.
+  Determine the default branch locally (`git symbolic-ref refs/remotes/origin/HEAD`),
+  no network calls. No manual `git merge-base` step, no PR required. Read the
   changed files for context, not only the raw hunks. Escape hatch: `--files <paths>`.
 
 Full rules: `references/resolve-inputs.md`.
@@ -57,9 +60,10 @@ worked examples: `references/diff-taxonomy.md`.
 
 Two non-negotiable rules:
 
-- **Evidence required.** No finding without `spec-quote` + `file:line` + a
-  **failing example** — or, for `missing`, a **search-proof** (terms grepped +
-  scope). No citation ⇒ not a finding.
+- **Evidence required (verdict-specific).** No finding without `spec-quote` +
+  `file:line`, plus: a **failing example** for `incorrect`; a **search-proof**
+  (terms grepped + scope) for `missing`; **equivalence evidence** for `different`
+  (the requirement is still met — nothing failed). No citation ⇒ not a finding.
 - **2-round grep for `missing`.** Search the diff AND the whole repo before
   asserting absence. Code may live where the spec didn't name it.
 

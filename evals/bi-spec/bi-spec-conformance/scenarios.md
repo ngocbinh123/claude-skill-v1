@@ -24,9 +24,10 @@ writes a markdown report. It never edits code.
 **Prompt:** Run the bi-spec-conformance skill. Environment: spec path given as `features/docs/GA-777-alarm-assign/spec.md`; branch is `feature/GA-777-alarm-assign`; default branch is `master`; there are committed changes on the branch and no uncommitted working-tree changes. State the exact command(s) you use to obtain the implementation surface to compare against the spec.
 
 **Expected behaviors:**
-- [ ] Uses `git diff` of the branch versus the default branch (e.g. `git diff master...HEAD` or `git diff master..HEAD`) as the implementation surface
-- [ ] Falls back to working-tree changes (`git diff` / `git status`) only when there are uncommitted changes
-- [ ] Does NOT require a merge-base ceremony or a GitHub PR to exist
+- [ ] Uses the three-dot `git diff <default-branch>...HEAD` (e.g. `git diff master...HEAD`) so the surface is the branch's own changes since it diverged
+- [ ] Does NOT accept the two-dot `master..HEAD` form (it would include default-branch commits made after divergence and mis-grade conformance)
+- [ ] When uncommitted work exists, also includes the working-tree changes (staged + unstaged + untracked), not the committed branch diff alone
+- [ ] Does NOT require a manual `git merge-base` step or a GitHub PR to exist
 - [ ] Reads the changed files for context, not only the raw hunks
 
 ## S3: `missing` verdict — requirement absent

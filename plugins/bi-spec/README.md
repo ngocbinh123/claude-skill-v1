@@ -8,7 +8,7 @@ Spec conformance skills for Claude Code.
 
 ## Install
 
-```
+```text
 /plugin marketplace add ngocbinh123/claude-skill-v1
 /plugin install bi-spec@bi-skills
 ```
