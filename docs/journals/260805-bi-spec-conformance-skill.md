@@ -40,9 +40,16 @@ Flow: brainstorm → plan (`--tdd`) → validate → cook. 4 TDD phases (RED sce
 lint-frontmatter · check-governance · sync-versions --check all green; eval
 dry-run parsed 12/12 scenarios; code-reviewer clean (3 nits fixed).
 
+## Update — 2026-08-06 (behavioral eval + PR review)
+
+- Behavioral eval ran in CI: 11/12, then **12/12 GREEN** after inlining the
+  report skeleton into SKILL.md §4 (S8 failed because the runner injects only
+  SKILL.md, not references — the report shape lived only in report-template.md).
+- Addressed PR bot review (Copilot + CodeRabbit): three-dot diff enforced,
+  local default-branch lookup (no `gh`), verdict-specific evidence, pasted-spec
+  output location, same-day overwrite guard, README fence language.
+
 ## Unresolved
 
-- Behavioral eval (`run-evals.js --plugin bi-spec`, needs API) not yet run —
-  do before merge for LLM-judged pass/fail.
 - S10/S11 use reviewer comments as proxy spec; pull real GA-806 docs for exact
   spec-quotes if stricter grounding wanted.
