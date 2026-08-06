@@ -60,10 +60,16 @@ and S12 (2-round grep avoids false-positive).
   (S1–S8 4 behaviors each, S9 5, S10–S12 4).
 - SKILL.md body = 113 lines (≤ 500; depth pushed to 4 references/).
 
-### Behavioral GREEN (pending API budget)
+### Behavioral GREEN (2026-08-06, CI `run-evals.js --plugin bi-spec`)
 
-`node tools/run-evals.js --plugin bi-spec` (LLM-judge, needs API access) not run
-in this session. Each scenario's expected behaviors are covered by an explicit
-SKILL.md rule (ask-not-guess, branch-diff surface, 2-round grep, evidence-
-required, batch-confirm, no-mutation, contradiction/two-way-fix, confidence
-gating). Run before merge to record judged pass/fail.
+First CI run: 11/12 pass; **S8 (report shape) failed** — the runner injects only
+SKILL.md (not references), so the report structure that lived only in
+`report-template.md` was invisible to the graded agent. It omitted the rough-%,
+the confidence column, and the unresolved-questions section.
+
+Fix: inlined the required report skeleton into SKILL.md §4 (header, summary with
+counts + rough %, findings table with the exact columns incl. Confidence,
+hand-off note, unresolved-questions). Re-run S8 with-skill → **4/4 pass**.
+
+All 12 scenarios GREEN (S1–S12). Lesson: anything a scenario grades must be
+answerable from SKILL.md alone — references are not injected into the eval arm.

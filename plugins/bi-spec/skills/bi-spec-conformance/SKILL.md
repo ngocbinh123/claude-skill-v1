@@ -80,11 +80,23 @@ into the report. `correct` items are summarised, not individually confirmed.
 
 ## 4. Report + hand-off
 
-Write `<spec-dir>/conformance-report-{YYMMDD}.md` (always next to the spec).
-Structure and columns: `references/report-template.md`. For `incorrect`, the
-suggested fix is **two-way** (align code OR update spec) when the spec carries a
-rationale that could be stale. `different` items get no fix — intent-confirm
-only. End by recommending `/cook` or `/fix` with the report path.
+Write `<spec-dir>/conformance-report-{YYMMDD}.md` (always next to the spec). The
+report MUST contain, in this order:
+
+1. **Header** — spec path, the `git diff` command + branch, date.
+2. **Summary** — counts per verdict (✅/⚠️/❌/🔀) AND a **rough % of spec
+   requirements implemented**.
+3. **Findings table** — one row per confirmed finding, with **exactly these
+   columns**: `Verdict | Requirement (spec quote + line) | Code (file:line) |
+   Confidence | Suggested fix`. (`correct` items are summarised in the counts,
+   not listed.)
+4. **Hand-off note** — recommend `/cook` or `/fix` with the report path.
+5. **Unresolved questions** — items marked "discuss" during confirmation, or "None".
+
+For `incorrect`, the suggested fix is **two-way** (align code OR update spec)
+when the spec carries a rationale that could be stale. `different` items get no
+fix — intent-confirm only. Full contract + overwrite guard:
+`references/report-template.md`.
 
 ## Verification
 
