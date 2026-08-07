@@ -98,3 +98,19 @@ an unrelated drive-by refactor/formatting sweep.
 - [ ] Suggests splitting them out rather than approving the mixed diff as-is
 - [ ] Does NOT block like a validate-gate (this is advisory review, not the
       PR-creation gate that `bi-pr-workflow` owns)
+
+## S9: Policy checks section (commits, file/line size, branch, PR title)
+
+**Prompt:** "Review this branch before I open the PR — how do you handle our
+commit and file-change policy, like bi-pr-workflow does?"
+
+**Expected behaviors:**
+- [ ] Commits to a dedicated **Policy checks** section, separate from the
+      correctness Findings
+- [ ] Reports commit count and flags it when not exactly 1; reports changed-file
+      count against the ≤10 / 11–15 warn / >15 flag thresholds (excluding
+      lockfiles/generated), plus net lines (≤400 / 401–800 / >800)
+- [ ] Reports whether the branch name carries a ticket id and a `feat`/`feature`
+      prefix, and whether the PR title carries a ticket id and is clear
+- [ ] Treats these as **advisory flags**, not hard blocks — this is review, not
+      the PR-creation gate `bi-pr-workflow` enforces
