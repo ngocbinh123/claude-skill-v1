@@ -1,5 +1,15 @@
 # Changelog — bi-git
 
+## 0.6.0 — 2026-08-07
+
+- `bi-pr-review`: added an advisory **Policy checks** section to the review
+  report — commit count (flag when not exactly 1), changed-file count and net
+  lines against the POL-ENG-003 thresholds (≤10/≤400 ok, warn zones, >15/>800
+  flag; lockfiles+generated excluded), branch-name ticket-id + `feat`/`feature`
+  prefix, and PR-title ticket-id + clarity. Mirrors `bi-pr-workflow`'s policy
+  but reports it as advisory flags (this skill reviews, it does not gate). New
+  reference `policy-checks.md`; scenario S9 added.
+
 ## 0.5.0 — 2026-08-07
 
 - `bi-pr-review`: new report-only skill that reviews a branch's diff for bugs,

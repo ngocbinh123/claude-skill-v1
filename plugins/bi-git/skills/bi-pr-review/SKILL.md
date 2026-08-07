@@ -30,7 +30,9 @@ editing code — never omit it.
 2. **Read the changed files** for context, not only the raw hunks.
 3. **Review across the dimensions** and assign severity + evidence. See
    `references/review-dimensions.md`.
-4. **Write the report** (skeleton below) and hand off to `/cook` or `/fix`.
+4. **Run the policy checks** (advisory) — commits, size, branch, PR title. See
+   `references/policy-checks.md`.
+5. **Write the report** (skeleton below) and hand off to `/cook` or `/fix`.
 
 ## 1. Resolve the review target (auto-detect)
 
@@ -79,7 +81,26 @@ Two non-negotiable rules:
   hand-listed nitpick pile. A clean diff → report "no blocking issues"; do not
   invent findings to pad the report.
 
-## 3. Report + hand-off
+## 3. Policy checks (advisory)
+
+Report compliance against the same policy `bi-pr-workflow` enforces — but here
+it is **advisory**: flag violations, do NOT hard-block (this is review, not the
+PR-creation gate). Compute from the resolved target (full commands + thresholds
+in `references/policy-checks.md`):
+
+| Check | Rule | How |
+|-------|------|-----|
+| Commits | exactly **1** commit; flag otherwise | `git rev-list --count <base>..HEAD` or `gh pr view --json commits` |
+| Files changed | ≤10 ok · 11–15 warn · **>15 flag** (excl. lockfiles/generated) | `git diff --name-only <base>...HEAD` |
+| Net lines | ≤400 ok · 401–800 warn · **>800 flag** | `git diff --numstat <base>...HEAD` summed |
+| Branch name | carries a **ticket id** AND a `feat`/`feature` prefix | current branch / PR head ref |
+| PR title | carries a **ticket id** and is clear & concise | `gh pr view --json title` (PR mode only) |
+| One concern | single logical change, not feature + drive-by | from the Scope lens |
+
+Each row reports its actual value and a ✅/⚠️/flag. These are compliance signals
+for the author, never a reason this skill refuses to produce the review.
+
+## 4. Report + hand-off
 
 Write the report to `plans/reports/pr-review-{YYMMDD}-{slug}.md` (or next to a
 spec/ticket if the user names a location). Use this skeleton exactly:
@@ -100,6 +121,15 @@ spec/ticket if the user names a location). Use this skeleton exactly:
 | 🔴 | `path:line` — one-line claim | inputs/state → wrong result | direction only |
 
 _(No blocking issues → say so and list only 🟡/🟢 if any.)_
+
+## Policy checks
+| Check | Value | Status |
+|-------|-------|--------|
+| Commits | {n} | {✅ / ⚠️ not 1} |
+| Files changed | {n} | {✅ ≤10 / ⚠️ 11–15 / 🚩 >15} |
+| Net lines | {n} | {✅ / ⚠️ / 🚩} |
+| Branch name | {name} | {✅ ticket+prefix / ⚠️ missing …} |
+| PR title | {title / n/a} | {✅ / ⚠️ …} |
 
 ## Scope note
 {Unrelated changes to split out, or "Single logical concern.".}
@@ -124,6 +154,8 @@ Before finishing, confirm:
 - [ ] Every finding has `file:line` + a concrete failure scenario + a one-line
       fix direction; ranked most-severe first.
 - [ ] Style preferences were not raised as blocker/high.
+- [ ] Policy checks reported (commits, files, lines, branch, PR title) as
+      advisory flags — not used to block the review.
 - [ ] No source file was edited; report written; hand-off to `/cook` or `/fix`.
 
 ## Anti-patterns
@@ -140,7 +172,9 @@ Before finishing, confirm:
 - **Do NOT** invent findings to fill the report — "no blocking issues" is a
   valid result.
 - **Do NOT** hard-assert runtime-dependent claims — surface them as questions.
-- **Do NOT** drift into spec-conformance (that is `bi-spec-conformance`) or into
-  the PR-creation validate gate (that is `bi-pr-workflow`).
+- **Do NOT** hard-block on a policy violation — report it in the Policy checks
+  section as an advisory flag. The blocking gate is `bi-pr-workflow`'s job at
+  PR-creation time; this skill reviews and reports, it does not gate.
+- **Do NOT** drift into spec-conformance — that is `bi-spec-conformance`.
 - **Do NOT** two-dot the diff or assume `main` — three-dot against the
   locally-resolved default branch.
