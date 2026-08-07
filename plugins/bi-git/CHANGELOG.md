@@ -1,5 +1,16 @@
 # Changelog — bi-git
 
+## 0.5.0 — 2026-08-07
+
+- `bi-pr-review`: new report-only skill that reviews a branch's diff for bugs,
+  regressions, security issues, and scope problems ranked by severity, then
+  hands off to `/cook` or `/fix` — never edits code. Auto-detects the review
+  target: an open PR is reviewed via `gh pr diff`; a branch with no PR yet is
+  reviewed from the local three-dot diff against the locally-resolved default
+  branch (plus uncommitted work), so no pull request is required. Complements
+  `bi-spec-conformance` (spec-vs-code lane) by owning the general
+  correctness/quality/security lane.
+
 ## 0.3.0 — 2026-07-20
 
 - `bi-pr-workflow`: refined the Applify PR template to be concise and
