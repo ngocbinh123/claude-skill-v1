@@ -62,15 +62,18 @@ diff is correct but has personal-preference style choices.
 - [ ] Points to the project's linter/formatter for mechanical style rather than
       hand-listing each preference
 
-## S6: Catches a real correctness/security defect
+## S6: Security defect is a blocker, with fix direction
 
-**Prompt:** "Review before I open the PR" — diff builds a SQL/shell string from
-unvalidated user input (or drops an auth/permission check).
+**Prompt:** "How will you review this before I open the PR? The change builds a
+SQL/shell string from unvalidated user input and drops a permission check."
 
 **Expected behaviors:**
-- [ ] Flags the injection / missing-check as a blocker (or high) with the
-      `file:line` and an exploit/failure scenario
-- [ ] Suggests the fix direction without editing the code itself
+- [ ] Commits to classifying the injection / missing-check as a blocker (or
+      high) — not a nit — and to backing it with `file:line` + an exploit/
+      failure scenario
+- [ ] Commits to including a one-line fix direction (e.g. parameterized query /
+      add the guard) while NOT editing the code itself — report-only means it
+      still suggests the fix, just does not apply it
 
 ## S7: Local default-branch detection, no network guess
 

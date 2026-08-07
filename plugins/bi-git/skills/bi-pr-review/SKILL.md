@@ -18,6 +18,12 @@ if there is no open PR, review the local branch diff. This skill owns the
 **general correctness / quality / security** lane; spec-vs-code conformance
 belongs to `bi-spec-conformance`, not here.
 
+**Report-only ≠ silent.** Every finding still carries a **one-line fix
+direction** — what to change, not a patch. "Report-only" means this skill does
+not *apply* the fix (no code edits); it always *suggests* the direction and
+hands the actual editing to `/cook` or `/fix`. Suggesting a direction is not
+editing code — never omit it.
+
 ## Workflow
 
 1. **Resolve the review target** (auto-detect PR vs local). See below.
@@ -115,8 +121,8 @@ Before finishing, confirm:
 - [ ] Review target auto-detected: open PR → `gh pr diff`; else three-dot local
       diff vs the **locally-resolved** default branch (+ working tree).
 - [ ] No PR was created and nothing was pushed to produce the review.
-- [ ] Every finding has `file:line` + a concrete failure scenario; ranked
-      most-severe first.
+- [ ] Every finding has `file:line` + a concrete failure scenario + a one-line
+      fix direction; ranked most-severe first.
 - [ ] Style preferences were not raised as blocker/high.
 - [ ] No source file was edited; report written; hand-off to `/cook` or `/fix`.
 
@@ -124,8 +130,9 @@ Before finishing, confirm:
 
 - **Do NOT** stop or error with "no PR found" — fall back to the local branch
   diff; a PR is not required.
-- **Do NOT** edit code, commit, push, approve, or merge — report + suggested
-  direction only.
+- **Do NOT** edit code, commit, push, approve, or merge — but DO give a one-line
+  fix direction per finding. Report-only means "don't apply the fix", not
+  "don't suggest one".
 - **Do NOT** report a finding without `file:line` + a concrete failure scenario;
   no "looks risky" hand-waving.
 - **Do NOT** raise pure style/formatting/naming as blocker/high — defer
